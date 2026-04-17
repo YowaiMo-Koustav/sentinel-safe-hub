@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/lib/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AppLayout from "./components/AppLayout";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -22,19 +24,66 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route element={<AppLayout />}>
-            <Route path="/sos" element={<GuestSOS />} />
-            <Route path="/dashboard" element={<StaffDashboard />} />
-            <Route path="/responder" element={<ResponderView />} />
-            <Route path="/incidents/:id" element={<IncidentDetail />} />
-            <Route path="/evacuation" element={<Evacuation />} />
-            <Route path="/settings" element={<Settings />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              {/* All signed-in users */}
+              <Route path="/sos" element={<GuestSOS />} />
+              <Route path="/evacuation" element={<Evacuation />} />
+
+              {/* Staff + admin */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute allow={["staff"]}>
+                    <StaffDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Responder + admin */}
+              <Route
+                path="/responder"
+                element={
+                  <ProtectedRoute allow={["responder"]}>
+                    <ResponderView />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Staff, responder, admin */}
+              <Route
+                path="/incidents/:id"
+                element={
+                  <ProtectedRoute allow={["staff", "responder"]}>
+                    <IncidentDetail />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin only */}
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute allow={["admin"]}>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
