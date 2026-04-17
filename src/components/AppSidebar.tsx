@@ -14,12 +14,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { SentinelLogo } from "./SentinelLogo";
-import { useAuth } from "@/lib/useAuth";
-import { clearAuth, roleLabel, type Role } from "@/lib/auth";
+import { useAuth, ROLE_LABELS, type AppRole } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { RoleBadge } from "./RoleBadge";
 
-type Item = { title: string; url: string; icon: typeof Siren; roles: Role[] };
+type Item = { title: string; url: string; icon: typeof Siren; roles: AppRole[] };
 
 const items: Item[] = [
   { title: "Guest SOS", url: "/sos", icon: Siren, roles: ["guest", "staff", "responder", "admin"] },
@@ -33,10 +33,12 @@ const items: Item[] = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { role, name } = useAuth();
+  const { roles, primaryRole, displayName, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const visible = items.filter((i) => !role || i.roles.includes(role));
+  const visible = items.filter((i) =>
+    roles.length === 0 ? false : i.roles.some((r) => roles.includes(r)),
+  );
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -70,20 +72,22 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        {!collapsed && role && (
+        {!collapsed && primaryRole && (
           <div className="mb-2 rounded-md bg-sidebar-accent/40 px-3 py-2">
             <p className="text-xs text-sidebar-foreground/70">Signed in as</p>
-            <p className="truncate text-sm font-medium text-sidebar-accent-foreground">{name}</p>
-            <p className="text-xs text-sidebar-primary">{roleLabel(role)}</p>
+            <p className="truncate text-sm font-medium text-sidebar-accent-foreground">
+              {displayName || "User"}
+            </p>
+            <p className="text-xs text-sidebar-primary">{ROLE_LABELS[primaryRole]}</p>
           </div>
         )}
-        {role && (
+        {primaryRole && (
           <Button
             variant="ghost"
             size="sm"
             className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            onClick={() => {
-              clearAuth();
+            onClick={async () => {
+              await signOut();
               navigate("/");
             }}
           >

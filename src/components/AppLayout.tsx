@@ -4,11 +4,12 @@ import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Siren } from "lucide-react";
 import { StatusChip } from "./StatusChip";
-import { useAuth } from "@/lib/useAuth";
+import { RoleBadge } from "./RoleBadge";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function AppLayout() {
   const navigate = useNavigate();
-  const { isAuthed } = useAuth();
+  const { user, primaryRole } = useAuth();
 
   return (
     <SidebarProvider>
@@ -20,11 +21,12 @@ export default function AppLayout() {
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <div className="hidden items-center gap-2 sm:flex">
-                <StatusChip label="Venue: Aurora Grand · Online" tone="success" pulse />
+                <StatusChip label="Aurora Grand · Online" tone="success" pulse />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {!isAuthed && (
+              {primaryRole && <RoleBadge role={primaryRole} />}
+              {!user && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
                   Sign in
                 </Button>
