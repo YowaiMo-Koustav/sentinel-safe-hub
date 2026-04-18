@@ -37,13 +37,13 @@ const IncidentDetail = () => {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
-  const act = async (next: NonNullable<ReturnType<typeof advanceLabel>>) => {
+  const act = async (next: AdvanceStatus) => {
     if (!incident || !user) return;
     setActing(true);
-    const patch: Record<string, unknown> = { status: next };
+    const patch: TablesUpdate<"incidents"> = { status: next };
     if (next === "in_progress") {
       patch.assigned_to = user.id;
-      patch.assigned_name = displayName || user.email?.split("@")[0];
+      patch.assigned_name = displayName || user.email?.split("@")[0] || "Responder";
     }
     if (next === "resolved") patch.resolved_at = new Date().toISOString();
 
@@ -130,8 +130,8 @@ const IncidentDetail = () => {
             <Card className="shadow-card">
               <CardHeader><CardTitle className="text-base">Actions</CardTitle></CardHeader>
               <CardContent className="space-y-2">
-                {next && (
-                  <Button className="w-full" disabled={acting} onClick={() => act(next)}>
+                {next && next !== "new" && (
+                  <Button className="w-full" disabled={acting} onClick={() => act(next as AdvanceStatus)}>
                     {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : next === "in_progress" ? <Hand className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                     {next === "acknowledged" && "Acknowledge"}
                     {next === "in_progress" && "Take ownership"}
