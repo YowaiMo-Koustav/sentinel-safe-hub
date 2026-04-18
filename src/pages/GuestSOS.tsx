@@ -25,10 +25,12 @@ const GuestSOS = () => {
   const navigate = useNavigate();
   const { user, displayName } = useAuth();
   const { incidents } = useIncidents({ ownOnly: true, userId: user?.id, enabled: !!user });
+  const { zones: dbZones } = useZones();
+  const zoneOptions = dbZones.length > 0 ? dbZones.map((z) => z.name) : ZONES;
 
   const [stage, setStage] = useState<Stage>("select-type");
   const [type, setType] = useState<IncidentType | null>(null);
-  const [zone, setZone] = useState<string>(ZONES[1]);
+  const [zone, setZone] = useState<string>(zoneOptions[1] ?? zoneOptions[0] ?? ZONES[0]);
   const [room, setRoom] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [createdId, setCreatedId] = useState<string | null>(null);
