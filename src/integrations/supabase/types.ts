@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      demo_events: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          payload: Json
+          played_at: string | null
+          scheduled_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          label: string
+          payload?: Json
+          played_at?: string | null
+          scheduled_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          payload?: Json
+          played_at?: string | null
+          scheduled_at?: string | null
+        }
+        Relationships: []
+      }
+      evacuation_paths: {
+        Row: {
+          created_at: string
+          estimated_seconds: number | null
+          from_zone: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["path_status"]
+          steps: Json
+          to_zone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_seconds?: number | null
+          from_zone: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["path_status"]
+          steps?: Json
+          to_zone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estimated_seconds?: number | null
+          from_zone?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["path_status"]
+          steps?: Json
+          to_zone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       incident_events: {
         Row: {
           actor_id: string | null
@@ -45,6 +111,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "incident_events_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_updates: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          created_at: string
+          id: string
+          incident_id: string
+          message: string
+          new_status: Database["public"]["Enums"]["incident_status"] | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string
+          id?: string
+          incident_id: string
+          message: string
+          new_status?: Database["public"]["Enums"]["incident_status"] | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string
+          id?: string
+          incident_id?: string
+          message?: string
+          new_status?: Database["public"]["Enums"]["incident_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_updates_incident_id_fkey"
             columns: ["incident_id"]
             isOneToOne: false
             referencedRelation: "incidents"
@@ -127,6 +234,42 @@ export type Database = {
         }
         Relationships: []
       }
+      system_status: {
+        Row: {
+          id: string
+          last_heartbeat: string
+          network_ok: boolean
+          power_ok: boolean
+          responders_available: number
+          sensors_online: number
+          sensors_total: number
+          staff_on_duty: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          last_heartbeat?: string
+          network_ok?: boolean
+          power_ok?: boolean
+          responders_available?: number
+          sensors_online?: number
+          sensors_total?: number
+          staff_on_duty?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          last_heartbeat?: string
+          network_ok?: boolean
+          power_ok?: boolean
+          responders_available?: number
+          sensors_online?: number
+          sensors_total?: number
+          staff_on_duty?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -145,6 +288,42 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      zones: {
+        Row: {
+          building: string | null
+          capacity: number | null
+          created_at: string
+          evacuation_path_id: string | null
+          floor: string | null
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["zone_status"]
+          updated_at: string
+        }
+        Insert: {
+          building?: string | null
+          capacity?: number | null
+          created_at?: string
+          evacuation_path_id?: string | null
+          floor?: string | null
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["zone_status"]
+          updated_at?: string
+        }
+        Update: {
+          building?: string | null
+          capacity?: number | null
+          created_at?: string
+          evacuation_path_id?: string | null
+          floor?: string | null
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["zone_status"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -176,6 +355,8 @@ export type Database = {
         | "network_failure"
         | "suspicious_activity"
         | "other"
+      path_status: "clear" | "partial" | "blocked"
+      zone_status: "normal" | "caution" | "danger"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -317,6 +498,8 @@ export const Constants = {
         "suspicious_activity",
         "other",
       ],
+      path_status: ["clear", "partial", "blocked"],
+      zone_status: ["normal", "caution", "danger"],
     },
   },
 } as const

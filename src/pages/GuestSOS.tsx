@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/AuthContext";
 import { useIncidents } from "@/hooks/useIncidents";
+import { useZones } from "@/hooks/useVenueData";
 import {
   INCIDENT_TYPES, ZONES, typeMeta, severityClass, statusClass, statusLabel, relativeTime,
   type IncidentType,
@@ -24,10 +25,12 @@ const GuestSOS = () => {
   const navigate = useNavigate();
   const { user, displayName } = useAuth();
   const { incidents } = useIncidents({ ownOnly: true, userId: user?.id, enabled: !!user });
+  const { zones: dbZones } = useZones();
+  const zoneOptions = dbZones.length > 0 ? dbZones.map((z) => z.name) : ZONES;
 
   const [stage, setStage] = useState<Stage>("select-type");
   const [type, setType] = useState<IncidentType | null>(null);
-  const [zone, setZone] = useState<string>(ZONES[1]);
+  const [zone, setZone] = useState<string>(zoneOptions[1] ?? zoneOptions[0] ?? ZONES[0]);
   const [room, setRoom] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -138,7 +141,7 @@ const GuestSOS = () => {
                   <Select value={zone} onValueChange={setZone}>
                     <SelectTrigger id="zone"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {ZONES.map((z) => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                      {zoneOptions.map((z) => <SelectItem key={z} value={z}>{z}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
