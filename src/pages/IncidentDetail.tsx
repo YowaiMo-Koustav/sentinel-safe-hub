@@ -11,8 +11,11 @@ import { useAuth } from "@/lib/AuthContext";
 import { useIncident } from "@/hooks/useIncidents";
 import {
   typeMeta, severityClass, statusClass, statusLabel, relativeTime, NEXT_STATUS,
-  type IncidentEventRow,
+  type IncidentEventRow, type IncidentStatus,
 } from "@/lib/incidents";
+import type { TablesUpdate } from "@/integrations/supabase/types";
+
+type AdvanceStatus = Exclude<IncidentStatus, "new">;
 
 const IncidentDetail = () => {
   const { id } = useParams();
