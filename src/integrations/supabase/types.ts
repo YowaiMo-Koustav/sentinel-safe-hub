@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      incident_events: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          event_type: string
+          id: string
+          incident_id: string
+          message: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          incident_id: string
+          message?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          incident_id?: string
+          message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_events_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incidents: {
+        Row: {
+          assigned_name: string | null
+          assigned_to: string | null
+          created_at: string
+          id: string
+          note: string | null
+          reporter_id: string
+          reporter_name: string | null
+          resolved_at: string | null
+          room: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          source: Database["public"]["Enums"]["incident_source"]
+          status: Database["public"]["Enums"]["incident_status"]
+          type: Database["public"]["Enums"]["incident_type"]
+          updated_at: string
+          zone: string
+        }
+        Insert: {
+          assigned_name?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          reporter_id: string
+          reporter_name?: string | null
+          resolved_at?: string | null
+          room?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          source?: Database["public"]["Enums"]["incident_source"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          type: Database["public"]["Enums"]["incident_type"]
+          updated_at?: string
+          zone: string
+        }
+        Update: {
+          assigned_name?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          reporter_id?: string
+          reporter_name?: string | null
+          resolved_at?: string | null
+          room?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          source?: Database["public"]["Enums"]["incident_source"]
+          status?: Database["public"]["Enums"]["incident_status"]
+          type?: Database["public"]["Enums"]["incident_type"]
+          updated_at?: string
+          zone?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -68,9 +160,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff_or_above: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "guest" | "staff" | "responder" | "admin"
+      incident_severity: "low" | "medium" | "high" | "critical"
+      incident_source: "guest" | "staff" | "sensor"
+      incident_status: "new" | "acknowledged" | "in_progress" | "resolved"
+      incident_type:
+        | "smoke_fire"
+        | "crowd_surge"
+        | "fall_injury"
+        | "blocked_exit"
+        | "power_failure"
+        | "network_failure"
+        | "suspicious_activity"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -199,6 +304,19 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["guest", "staff", "responder", "admin"],
+      incident_severity: ["low", "medium", "high", "critical"],
+      incident_source: ["guest", "staff", "sensor"],
+      incident_status: ["new", "acknowledged", "in_progress", "resolved"],
+      incident_type: [
+        "smoke_fire",
+        "crowd_surge",
+        "fall_injury",
+        "blocked_exit",
+        "power_failure",
+        "network_failure",
+        "suspicious_activity",
+        "other",
+      ],
     },
   },
 } as const
