@@ -162,7 +162,6 @@ const IncidentDetail = () => {
   );
 };
 
-function advanceLabel() { return "" as "acknowledged" | "in_progress" | "resolved"; }
 
 function Field({ icon: Icon, label, value }: { icon: typeof MapPin; label: string; value: string }) {
   return (
