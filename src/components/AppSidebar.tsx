@@ -25,7 +25,7 @@ const items: Item[] = [
   { title: "Guest SOS", url: "/sos", icon: Siren, roles: ["guest", "staff", "responder", "admin"] },
   { title: "Staff Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["staff", "admin"] },
   { title: "Responder", url: "/responder", icon: Radio, roles: ["responder", "admin"] },
-  { title: "Incidents", url: "/incidents/INC-2041", icon: AlertTriangle, roles: ["staff", "responder", "admin"] },
+  { title: "Incidents", url: "/dashboard", icon: AlertTriangle, roles: ["staff", "responder", "admin"] },
   { title: "Evacuation", url: "/evacuation", icon: Map, roles: ["guest", "staff", "responder", "admin"] },
   { title: "Settings", url: "/settings", icon: Settings, roles: ["admin"] },
 ];
