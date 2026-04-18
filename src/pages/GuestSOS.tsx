@@ -141,7 +141,7 @@ const GuestSOS = () => {
                   <Select value={zone} onValueChange={setZone}>
                     <SelectTrigger id="zone"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {ZONES.map((z) => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                      {zoneOptions.map((z) => <SelectItem key={z} value={z}>{z}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
