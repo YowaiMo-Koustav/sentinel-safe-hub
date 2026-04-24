@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth, defaultRouteForRole, type AppRole } from "@/lib/AuthContext";
+import { apiClient } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ const signUpSchema = signInSchema.extend({
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation() as { state?: { from?: string } };
-  const { user, primaryRole, loading } = useAuth();
+  const { user, primaryRole, loading, signIn } = useAuth();
 
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [submitting, setSubmitting] = useState(false);
@@ -63,16 +63,13 @@ const Login = () => {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: parsed.data.email,
-      password: parsed.data.password,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message === "Invalid login credentials" ? "Wrong email or password" : error.message);
-      return;
+    try {
+      await signIn(parsed.data.email, parsed.data.password);
+      toast.success("Welcome back");
+    } catch (error) {
+      toast.error("Wrong email or password");
     }
-    toast.success("Welcome back");
+    setSubmitting(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -85,20 +82,26 @@ const Login = () => {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: { display_name: parsed.data.name, role: parsed.data.role },
-      },
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message.includes("already") ? "An account with this email already exists" : error.message);
-      return;
+    try {
+      // Real signup using our API
+      const response = await apiClient.register(
+        parsed.data.email, 
+        parsed.data.password, 
+        parsed.data.name, 
+        parsed.data.role
+      );
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      // After successful registration, sign in
+      await signIn(parsed.data.email, parsed.data.password);
+      toast.success("Account created and logged in");
+    } catch (error) {
+      toast.error("Failed to create account");
     }
-    toast.success("Account created");
+    setSubmitting(false);
   };
 
   return (

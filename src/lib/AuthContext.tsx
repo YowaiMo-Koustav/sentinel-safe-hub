@@ -1,18 +1,17 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient, type User } from "@/lib/api";
 
 export type AppRole = "guest" | "staff" | "responder" | "admin";
 
 interface AuthContextValue {
   user: User | null;
-  session: Session | null;
   roles: AppRole[];
   primaryRole: AppRole | null;
   displayName: string;
   loading: boolean;
   rolesLoading: boolean;
   hasRole: (role: AppRole) => boolean;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -21,7 +20,6 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const ROLE_RANK: AppRole[] = ["admin", "responder", "staff", "guest"];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [displayName, setDisplayName] = useState<string>("");
@@ -29,57 +27,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [rolesLoading, setRolesLoading] = useState(false);
 
   useEffect(() => {
-    // 1. Synchronous listener FIRST
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (!sess) {
-        setRoles([]);
-        setDisplayName("");
-      } else {
-        // Defer DB calls to avoid deadlock inside the callback
-        setTimeout(() => {
-          loadRolesAndProfile(sess.user.id);
-        }, 0);
-      }
-    });
-
-    // 2. Then check existing session
-    supabase.auth.getSession().then(({ data: { session: sess } }) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess) loadRolesAndProfile(sess.user.id);
+    // Check for existing token in localStorage
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      apiClient.setToken(token);
+      loadUserProfile();
+    } else {
       setLoading(false);
-    });
-
-    return () => sub.subscription.unsubscribe();
+    }
   }, []);
 
-  async function loadRolesAndProfile(uid: string) {
-    setRolesLoading(true);
-    const [{ data: roleRows }, { data: profile }] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", uid),
-      supabase.from("profiles").select("display_name").eq("id", uid).maybeSingle(),
-    ]);
-    setRoles((roleRows ?? []).map((r) => r.role as AppRole));
-    setDisplayName(profile?.display_name ?? "");
-    setRolesLoading(false);
-  }
+  const loadUserProfile = async () => {
+    try {
+      setRolesLoading(true);
+      const response = await apiClient.getProfile();
+      
+      if (response.data) {
+        setUser(response.data);
+        setRoles(response.data.roles as AppRole[]);
+        setDisplayName(response.data.displayName);
+      } else {
+        // Token invalid, clear it
+        localStorage.removeItem("auth_token");
+        apiClient.setToken("");
+      }
+    } catch (error) {
+      console.error("Failed to load user profile:", error);
+      localStorage.removeItem("auth_token");
+      apiClient.setToken("");
+    } finally {
+      setRolesLoading(false);
+      setLoading(false);
+    }
+  };
 
   const primaryRole = ROLE_RANK.find((r) => roles.includes(r)) ?? null;
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      const response = await apiClient.login(email, password);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      if (response.data) {
+        const { user: userData, token } = response.data;
+        
+        // Store token
+        localStorage.setItem("auth_token", token);
+        apiClient.setToken(token);
+        
+        // Set user data
+        setUser(userData);
+        setRoles(userData.roles as AppRole[]);
+        setDisplayName(userData.displayName);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
+    // Clear token and user data
+    localStorage.removeItem("auth_token");
+    apiClient.setToken("");
+    setUser(null);
+    setRoles([]);
+    setDisplayName("");
+  };
+
   const value: AuthContextValue = {
     user,
-    session,
     roles,
     primaryRole,
     displayName,
     loading,
     rolesLoading,
     hasRole: (r) => roles.includes(r),
-    signOut: async () => {
-      await supabase.auth.signOut();
-    },
+    signIn,
+    signOut,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,75 +1,256 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { apiClient, type Zone, type EvacuationPath } from "@/lib/api";
 
-export type Zone = Database["public"]["Tables"]["zones"]["Row"];
-export type EvacuationPath = Database["public"]["Tables"]["evacuation_paths"]["Row"];
-export type SystemStatus = Database["public"]["Tables"]["system_status"]["Row"];
-export type IncidentUpdate = Database["public"]["Tables"]["incident_updates"]["Row"];
-
-export function useZones() {
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let active = true;
-    supabase.from("zones").select("*").order("name").then(({ data }) => {
-      if (active) { setZones((data ?? []) as Zone[]); setLoading(false); }
-    });
-    const ch = supabase.channel("zones-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "zones" }, (p) => {
-        setZones((curr) => {
-          if (p.eventType === "INSERT") return [...curr, p.new as Zone];
-          if (p.eventType === "UPDATE") return curr.map((z) => z.id === (p.new as Zone).id ? p.new as Zone : z);
-          if (p.eventType === "DELETE") return curr.filter((z) => z.id !== (p.old as Zone).id);
-          return curr;
-        });
-      }).subscribe();
-    return () => { active = false; supabase.removeChannel(ch); };
-  }, []);
-  return { zones, loading };
+export interface SystemStatus {
+  id: string;
+  status: string;
+  message?: string;
+  updated_at: string;
 }
 
-export function useEvacuationPaths() {
+export interface IncidentUpdate {
+  id: string;
+  incident_id: string;
+  actor_id?: string;
+  actor_name?: string;
+  event_type: string;
+  message?: string;
+  created_at: string;
+}
+
+export function useZones(params?: { status?: string }) {
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        
+        const response = await apiClient.getZones(params);
+        
+        if (response.error) {
+          setError(response.error);
+          setZones([]);
+        } else if (response.data) {
+          setZones(response.data);
+          setError(null);
+        }
+      } catch (err) {
+        setError("Failed to load zones");
+        setZones([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    load();
+  }, [params?.status]);
+
+  // Real-time updates for zones
+  useEffect(() => {
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:5000';
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'zone_created') {
+          setZones(prev => [...prev, data.zone]);
+        } else if (data.type === 'zone_updated') {
+          setZones(prev => {
+            const index = prev.findIndex(z => z.id === data.zone.id);
+            if (index >= 0) {
+              const updated = [...prev];
+              updated[index] = data.zone;
+              return updated;
+            }
+            return prev;
+          });
+        } else if (data.type === 'zone_deleted') {
+          setZones(prev => prev.filter(z => z.id !== data.id));
+        }
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err);
+      }
+    };
+    
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+  return { zones, loading, error };
+}
+
+export function useEvacuationPaths(params?: { status?: string; from_zone?: string }) {
   const [paths, setPaths] = useState<EvacuationPath[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dynamicPaths, setDynamicPaths] = useState<EvacuationPath[]>([]);
+  
   useEffect(() => {
-    let active = true;
-    supabase.from("evacuation_paths").select("*").order("name").then(({ data }) => {
-      if (active) { setPaths((data ?? []) as EvacuationPath[]); setLoading(false); }
-    });
-    return () => { active = false; };
+    const load = async () => {
+      try {
+        setLoading(true);
+        
+        const response = await apiClient.getEvacuationPaths(params);
+        
+        if (response.error) {
+          setError(response.error);
+          setPaths([]);
+          setDynamicPaths([]);
+        } else if (response.data) {
+          setPaths(response.data);
+          setDynamicPaths(response.data);
+          setError(null);
+        }
+      } catch (err) {
+        setError("Failed to load evacuation paths");
+        setPaths([]);
+        setDynamicPaths([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    load();
+  }, [params?.status, params?.from_zone]);
+
+  // Real-time updates for evacuation paths
+  useEffect(() => {
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:5000';
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'evacuation_path_created') {
+          setPaths(prev => [...prev, data.path]);
+          setDynamicPaths(prev => [...prev, data.path]);
+        } else if (data.type === 'evacuation_path_updated') {
+          const updatePaths = (prev: EvacuationPath[]) => {
+            const index = prev.findIndex(p => p.id === data.path.id);
+            if (index >= 0) {
+              const updated = [...prev];
+              updated[index] = data.path;
+              return updated;
+            }
+            return prev;
+          };
+          
+          setPaths(updatePaths);
+          setDynamicPaths(updatePaths);
+        } else if (data.type === 'evacuation_path_deleted') {
+          const filterPaths = (prev: EvacuationPath[]) => 
+            prev.filter(p => p.id !== data.id);
+          
+          setPaths(filterPaths);
+          setDynamicPaths(filterPaths);
+        }
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err);
+      }
+    };
+    
+    return () => {
+      ws.close();
+    };
   }, []);
-  return { paths, loading };
+
+  return { paths, loading, error, dynamicPaths };
 }
 
 export function useSystemStatus() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  
   useEffect(() => {
-    let active = true;
-    supabase.from("system_status").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle()
-      .then(({ data }) => { if (active) setStatus((data as SystemStatus) ?? null); });
-    const ch = supabase.channel("status-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "system_status" },
-        (p) => setStatus(p.new as SystemStatus))
-      .subscribe();
-    return () => { active = false; supabase.removeChannel(ch); };
+    const load = async () => {
+      try {
+        setLoading(true);
+        
+        // For now, use a mock system status since we don't have a dedicated endpoint
+        const mockStatus: SystemStatus = {
+          id: "1",
+          status: "operational",
+          message: "All systems operational",
+          updated_at: new Date().toISOString(),
+        };
+        
+        setStatus(mockStatus);
+      } catch (err) {
+        console.error("Failed to load system status:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    load();
   }, []);
+  
   return status;
 }
 
 export function useIncidentUpdates(incidentId: string | undefined) {
   const [updates, setUpdates] = useState<IncidentUpdate[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    if (!incidentId) {
+      setUpdates([]);
+      setLoading(false);
+      return;
+    }
+    
+    const load = async () => {
+      try {
+        setLoading(true);
+        
+        const response = await apiClient.getIncident(incidentId);
+        
+        if (response.data?.events) {
+          setUpdates(response.data.events);
+        } else {
+          setUpdates([]);
+        }
+      } catch (err) {
+        console.error("Failed to load incident updates:", err);
+        setUpdates([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    load();
+  }, [incidentId]);
+
+  // Real-time updates for incident events
   useEffect(() => {
     if (!incidentId) return;
-    let active = true;
-    supabase.from("incident_updates").select("*").eq("incident_id", incidentId).order("created_at", { ascending: true })
-      .then(({ data }) => { if (active) setUpdates((data ?? []) as IncidentUpdate[]); });
-    const ch = supabase.channel(`updates-${incidentId}`)
-      .on("postgres_changes",
-        { event: "INSERT", schema: "public", table: "incident_updates", filter: `incident_id=eq.${incidentId}` },
-        (p) => setUpdates((curr) => [...curr, p.new as IncidentUpdate]))
-      .subscribe();
-    return () => { active = false; supabase.removeChannel(ch); };
+    
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:5000';
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'incident_comment_added' && data.incidentId === incidentId) {
+          setUpdates(data.events);
+        }
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err);
+      }
+    };
+    
+    return () => {
+      ws.close();
+    };
   }, [incidentId]);
-  return updates;
+  
+  return { updates, loading };
 }

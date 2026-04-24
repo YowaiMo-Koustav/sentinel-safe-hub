@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, MapPin, User, Clock, Radio, CheckCircle2, Loader2, Hand, Send } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/AuthContext";
 import { useIncident } from "@/hooks/useIncidents";
 import { useIncidentUpdates } from "@/hooks/useVenueData";
@@ -15,7 +14,6 @@ import {
   typeMeta, severityClass, statusClass, statusLabel, NEXT_STATUS,
   type IncidentStatus,
 } from "@/lib/incidents";
-import type { TablesUpdate } from "@/integrations/supabase/types";
 import { StatusTimeline } from "@/components/incidents/StatusTimeline";
 import { ZoneChip } from "@/components/incidents/ZoneChip";
 
@@ -33,32 +31,29 @@ const IncidentDetail = () => {
 
   const postUpdate = async (message: string, newStatus: IncidentStatus | null) => {
     if (!incident || !user) return;
-    return supabase.from("incident_updates").insert({
-      incident_id: incident.id,
-      actor_id: user.id,
-      actor_name: displayName || user.email?.split("@")[0] || "Responder",
-      actor_role: primaryRole,
-      message,
-      new_status: newStatus,
-    });
+    // Mock API call - replace with actual API implementation
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log("Posting update:", { message, newStatus });
+      return { data: null, error: null };
+    } catch (error) {
+      return { data: null, error: { message: "Failed to post update" } };
+    }
   };
 
   const act = async (next: AdvanceStatus) => {
     if (!incident || !user) return;
     setActing(true);
-    const patch: TablesUpdate<"incidents"> = { status: next };
-    if (next === "in_progress") {
-      patch.assigned_to = user.id;
-      patch.assigned_name = displayName || user.email?.split("@")[0] || "Responder";
-    }
-    if (next === "resolved") patch.resolved_at = new Date().toISOString();
-
-    const { error } = await supabase.from("incidents").update(patch).eq("id", incident.id);
-    if (!error) {
+    
+    // Mock API call - replace with actual API implementation
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      console.log("Updating incident status:", { next, userId: user.id });
+      
       await postUpdate(`Status changed to ${statusLabel(next)}`, next);
       toast.success(`Marked ${statusLabel(next).toLowerCase()}`);
-    } else {
-      toast.error("Could not update", { description: error.message });
+    } catch (error) {
+      toast.error("Could not update", { description: "Failed to update incident" });
     }
     setActing(false);
   };

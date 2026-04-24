@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/StatusChip";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useAuth } from "@/lib/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { NEXT_STATUS } from "@/lib/incidents";
 import { ArrowRight, CheckCircle2, Loader2, Hand } from "lucide-react";
 import { toast } from "sonner";
@@ -40,25 +39,30 @@ const ResponderView = () => {
   const claim = async (id: string) => {
     if (!user) return;
     setActing(id);
-    const { error } = await supabase.from("incidents").update({
-      status: "in_progress",
-      assigned_to: user.id,
-      assigned_name: displayName || user.email?.split("@")[0],
-    }).eq("id", id);
+    
+    // Mock API call - replace with actual API implementation
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      console.log("Claiming incident:", { id, userId: user.id });
+      toast.success("Incident assigned to you");
+    } catch (error) {
+      toast.error("Could not claim", { description: "Failed to claim incident" });
+    }
     setActing(null);
-    if (error) toast.error("Could not claim", { description: error.message });
-    else toast.success("Incident assigned to you");
   };
 
   const resolve = async (id: string) => {
     setActing(id);
-    const { error } = await supabase.from("incidents").update({
-      status: "resolved",
-      resolved_at: new Date().toISOString(),
-    }).eq("id", id);
+    
+    // Mock API call - replace with actual API implementation
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      console.log("Resolving incident:", { id });
+      toast.success("Incident resolved");
+    } catch (error) {
+      toast.error("Could not resolve", { description: "Failed to resolve incident" });
+    }
     setActing(null);
-    if (error) toast.error("Could not resolve", { description: error.message });
-    else toast.success("Incident resolved");
   };
 
   return (

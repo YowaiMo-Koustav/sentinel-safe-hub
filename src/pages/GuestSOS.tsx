@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Siren, MapPin, Phone, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
 import { StatusChip } from "@/components/StatusChip";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/AuthContext";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useZones } from "@/hooks/useVenueData";
+import { apiClient } from "@/lib/api";
 import {
   INCIDENT_TYPES, ZONES, typeMeta, severityClass, statusClass, statusLabel, relativeTime,
   type IncidentType,
@@ -50,26 +50,30 @@ const GuestSOS = () => {
     if (!user || !type) return;
     setStage("submitting");
     const meta = typeMeta(type);
-    const { data, error } = await supabase.from("incidents").insert({
-      type,
-      severity: meta.defaultSeverity,
-      status: "new",
-      zone,
-      room: room.trim() || null,
-      note: note.trim() || null,
-      source: "guest",
-      reporter_id: user.id,
-      reporter_name: displayName || user.email?.split("@")[0] || "Guest",
-    }).select("id").single();
-
-    if (error) {
-      toast.error("Could not send SOS", { description: error.message });
+    
+    try {
+      const response = await apiClient.createIncident({
+        type: type as any,
+        severity: meta.defaultSeverity as any,
+        zone,
+        room: room || undefined,
+        note: note || undefined,
+        source: 'guest'
+      });
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      if (response.data?.incident) {
+        setCreatedId(response.data.incident.id);
+        setStage("sent");
+        toast.success("Help is on the way", { description: "Responders have been notified." });
+      }
+    } catch (error) {
+      toast.error("Could not send SOS", { description: error instanceof Error ? error.message : "Failed to submit incident" });
       setStage("details");
-      return;
     }
-    setCreatedId(data.id);
-    setStage("sent");
-    toast.success("Help is on the way", { description: "Responders have been notified." });
   };
 
   return (
@@ -184,7 +188,7 @@ const GuestSOS = () => {
           </Card>
         )}
 
-        {stage === "sent" && justSubmitted && (
+        {stage === "sent" && (
           <Card className="border-success/30 shadow-elegant animate-fade-in-up">
             <CardContent className="space-y-5 p-6 sm:p-8">
               <div className="flex flex-col items-center gap-3 text-center">
@@ -198,14 +202,14 @@ const GuestSOS = () => {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <InfoCell label="Incident" value={`#${justSubmitted.id.slice(0, 8).toUpperCase()}`} />
-                <InfoCell label="Type" value={typeMeta(justSubmitted.type).label} />
+                <InfoCell label="Incident" value={`#${createdId?.slice(0, 8).toUpperCase()}`} />
+                <InfoCell label="Type" value={typeMeta(type!).label} />
                 <InfoCell label="Status">
-                  <Badge className={statusClass(justSubmitted.status)}>{statusLabel(justSubmitted.status)}</Badge>
+                  <Badge className={statusClass("new")}>{statusLabel("new")}</Badge>
                 </InfoCell>
-                <InfoCell label="Zone" value={justSubmitted.zone} />
-                <InfoCell label="Room" value={justSubmitted.room || "—"} />
-                <InfoCell label="Reported" value={relativeTime(justSubmitted.created_at)} />
+                <InfoCell label="Zone" value={zone} />
+                <InfoCell label="Room" value={room || "—"} />
+                <InfoCell label="Reported" value={relativeTime(new Date().toISOString())} />
               </div>
 
               <div className="flex flex-wrap justify-center gap-2 pt-1">
@@ -225,12 +229,12 @@ const GuestSOS = () => {
               {recent.map((i) => (
                 <div key={i.id} className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{typeMeta(i.type).label}</p>
+                    <p className="truncate text-sm font-medium">{typeMeta(i.type as any).label}</p>
                     <p className="text-xs text-muted-foreground">{i.zone}{i.room ? ` · ${i.room}` : ""} · {relativeTime(i.created_at)}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <Badge className={severityClass(i.severity)} variant="outline">{i.severity}</Badge>
-                    <Badge className={statusClass(i.status)}>{statusLabel(i.status)}</Badge>
+                    <Badge className={severityClass(i.severity as any)} variant="outline">{i.severity}</Badge>
+                    <Badge className={statusClass(i.status as any)}>{statusLabel(i.status as any)}</Badge>
                   </div>
                 </div>
               ))}

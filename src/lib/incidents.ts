@@ -1,12 +1,38 @@
-import { Database } from "@/integrations/supabase/types";
 import { Flame, Users, HeartPulse, DoorClosed, Zap, WifiOff, Eye, Siren, type LucideIcon } from "lucide-react";
 
-export type IncidentRow = Database["public"]["Tables"]["incidents"]["Row"];
-export type IncidentEventRow = Database["public"]["Tables"]["incident_events"]["Row"];
-export type IncidentType = Database["public"]["Enums"]["incident_type"];
-export type IncidentSeverity = Database["public"]["Enums"]["incident_severity"];
-export type IncidentStatus = Database["public"]["Enums"]["incident_status"];
-export type IncidentSource = Database["public"]["Enums"]["incident_source"];
+// Define types without Supabase dependency
+export type IncidentType = "smoke_fire" | "crowd_surge" | "fall_injury" | "blocked_exit" | "power_failure" | "network_failure" | "suspicious_activity" | "other";
+export type IncidentSeverity = "critical" | "high" | "medium" | "low";
+export type IncidentStatus = "new" | "acknowledged" | "in_progress" | "resolved";
+export type IncidentSource = "guest" | "staff" | "sensor";
+
+export interface IncidentRow {
+  id: string;
+  type: IncidentType;
+  severity: IncidentSeverity;
+  status: IncidentStatus;
+  zone: string;
+  room?: string | null;
+  note?: string | null;
+  source: IncidentSource;
+  reporter_id: string;
+  reporter_name?: string | null;
+  assigned_to?: string | null;
+  assigned_name?: string | null;
+  created_at: string;
+  updated_at: string;
+  resolved_at?: string | null;
+}
+
+export interface IncidentEventRow {
+  id: string;
+  incident_id: string;
+  actor_id?: string | null;
+  actor_name?: string | null;
+  event_type: string;
+  message?: string | null;
+  created_at: string;
+}
 
 export const INCIDENT_TYPES: {
   id: IncidentType;

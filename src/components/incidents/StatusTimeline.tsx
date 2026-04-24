@@ -1,14 +1,12 @@
 import { relativeTime, statusClass, statusLabel, type IncidentRow } from "@/lib/incidents";
-import type { Database } from "@/integrations/supabase/types";
+import type { IncidentUpdate } from "@/hooks/useVenueData";
 import { Badge } from "@/components/ui/badge";
 import { Siren, CheckCircle2, MessageSquare, ArrowRightCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Update = Database["public"]["Tables"]["incident_updates"]["Row"];
-
 interface Props {
   incident: IncidentRow;
-  updates: Update[];
+  updates: IncidentUpdate[];
 }
 
 export function StatusTimeline({ incident, updates }: Props) {
@@ -32,13 +30,10 @@ export function StatusTimeline({ incident, updates }: Props) {
   for (const u of updates) {
     items.push({
       time: relativeTime(u.created_at),
-      title: u.message,
-      subtitle: u.actor_name ? `${u.actor_name}${u.actor_role ? ` · ${u.actor_role}` : ""}` : undefined,
-      icon: u.new_status ? ArrowRightCircle : MessageSquare,
-      tone: u.new_status === "resolved" ? "success" : u.new_status === "in_progress" ? "info" : "warning",
-      badge: u.new_status ? (
-        <Badge className={statusClass(u.new_status)}>{statusLabel(u.new_status)}</Badge>
-      ) : undefined,
+      title: u.message || "Status update",
+      subtitle: u.actor_name ? `${u.actor_name}` : undefined,
+      icon: MessageSquare,
+      tone: "info",
     });
   }
 
