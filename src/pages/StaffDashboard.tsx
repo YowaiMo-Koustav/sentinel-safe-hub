@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/StatusChip";
 import { useIncidents } from "@/hooks/useIncidents";
 import {
-  statusLabel, NEXT_STATUS, type IncidentRow,
+  statusLabel, NEXT_STATUS, typeLabel, type IncidentRow,
 } from "@/lib/incidents";
 import { useAuth } from "@/lib/AuthContext";
 import { AlertTriangle, Inbox, CheckCircle2, Activity, ArrowRight, Loader2 } from "lucide-react";
@@ -121,7 +121,7 @@ const StaffDashboard = () => {
                 id: i.id,
                 position: zoneCoords(i.zone),
                 tone: i.severity === "critical" ? "emergency" : i.severity === "high" ? "warning" : "info",
-                label: typeMetaLabel(i.type),
+                label: typeLabel(i.type),
                 pulse: i.status === "new" && i.severity === "critical",
                 onClick: () => navigate(`/incidents/${i.id}`),
               }))}
