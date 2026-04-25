@@ -16,6 +16,8 @@ import {
 } from "@/lib/incidents";
 import { StatusTimeline } from "@/components/incidents/StatusTimeline";
 import { ZoneChip } from "@/components/incidents/ZoneChip";
+import { VenueMap } from "@/components/maps/VenueMap";
+import { zoneCoords } from "@/lib/venueGeo";
 
 type AdvanceStatus = Exclude<IncidentStatus, "new">;
 
@@ -114,6 +116,24 @@ const IncidentDetail = () => {
                 <Field icon={Clock} label="Reported" value={new Date(incident.created_at).toLocaleString()} />
                 <Field icon={Radio} label="Assigned to" value={incident.assigned_name || "Unassigned"} />
               </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden shadow-card">
+              <CardHeader><CardTitle className="text-base">Incident location</CardTitle></CardHeader>
+              <VenueMap
+                height={260}
+                fitBounds={false}
+                zoom={18}
+                center={zoneCoords(incident.zone)}
+                markers={[{
+                  id: incident.id,
+                  position: zoneCoords(incident.zone),
+                  tone: incident.severity === "critical" ? "emergency" : incident.severity === "high" ? "warning" : "info",
+                  label: incident.zone,
+                  pulse: incident.status === "new",
+                }]}
+                legend={false}
+              />
             </Card>
 
             <Card className="shadow-card">
