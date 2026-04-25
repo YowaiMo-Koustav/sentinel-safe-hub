@@ -24,7 +24,7 @@ const IncidentDetail = () => {
   const navigate = useNavigate();
   const { user, displayName, primaryRole } = useAuth();
   const { incident, loading } = useIncident(id);
-  const updates = useIncidentUpdates(id);
+  const { updates } = useIncidentUpdates(id);
   const [acting, setActing] = useState(false);
   const [note, setNote] = useState("");
   const [posting, setPosting] = useState(false);
