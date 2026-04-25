@@ -14,15 +14,17 @@ export interface User {
   createdAt: string;
 }
 
+import type { IncidentType, IncidentSeverity, IncidentStatus, IncidentSource } from "./incidents";
+
 export interface Incident {
   id: string;
-  type: string;
-  severity: string;
-  status: string;
+  type: IncidentType;
+  severity: IncidentSeverity;
+  status: IncidentStatus;
   zone: string;
   room?: string;
   note?: string;
-  source: string;
+  source: IncidentSource;
   reporter_id: string;
   reporter_name?: string;
   reporter_display_name?: string;
