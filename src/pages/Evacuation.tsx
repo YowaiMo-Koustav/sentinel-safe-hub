@@ -31,6 +31,27 @@ const Evacuation = () => {
     return [];
   }, [recommended]);
 
+  const [voice, setVoice] = useState(false);
+
+  const speakStep = (text: string) => {
+    if (!voice || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1; u.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  };
+
+  const mapMarkers: MapMarker[] = recommended ? [
+    { id: "you", position: zoneCoords(recommended.from_zone), tone: "info", label: "You", pulse: true },
+    { id: "assembly", position: ASSEMBLY_POINT.coords, tone: "success", label: "Assembly" },
+  ] : [];
+
+  const mapRoutes: MapRoute[] = recommended ? [{
+    positions: buildRoute(recommended.from_zone, recommended.to_zone),
+    tone: (PATH_TONE[recommended.status]?.tone ?? "info") as MapTone,
+    dashed: recommended.status !== "clear",
+  }] : [];
+
   return (
     <div>
       <PageHeader
@@ -57,32 +78,13 @@ const Evacuation = () => {
           </Card>
         ) : (
           <div className="grid gap-6 lg:grid-cols-3">
-            {/* Map placeholder */}
+            {/* Live map */}
             <Card className="overflow-hidden shadow-card lg:col-span-2">
-              <div className="relative aspect-[4/3] w-full bg-gradient-to-br from-secondary to-muted">
-                <svg viewBox="0 0 400 300" className="absolute inset-0 h-full w-full">
-                  <defs>
-                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="hsl(var(--border))" strokeWidth="0.5" />
-                    </pattern>
-                  </defs>
-                  <rect width="400" height="300" fill="url(#grid)" />
-                  <rect x="40" y="120" width="320" height="40" fill="hsl(var(--card))" stroke="hsl(var(--border))" />
-                  <rect x="180" y="40" width="40" height="220" fill="hsl(var(--card))" stroke="hsl(var(--border))" />
-                  <rect x="40" y="40" width="120" height="60" fill="hsl(var(--muted))" stroke="hsl(var(--border))" />
-                  <text x="100" y="75" textAnchor="middle" fontSize="10" fill="hsl(var(--muted-foreground))">{recommended.from_zone}</text>
-                  <rect x="240" y="200" width="120" height="60" fill="hsl(var(--success) / 0.15)" stroke="hsl(var(--success))" />
-                  <text x="300" y="235" textAnchor="middle" fontSize="10" fill="hsl(var(--success))" fontWeight="600">{recommended.to_zone}</text>
-                  <path d="M 100 100 L 100 140 L 200 140 L 200 230 L 300 230"
-                    fill="none" stroke="hsl(var(--emergency))" strokeWidth="3" strokeDasharray="6 4" />
-                  <circle cx="100" cy="100" r="6" fill="hsl(var(--info))" />
-                  <circle cx="300" cy="230" r="6" fill="hsl(var(--success))" />
-                </svg>
-                <div className="absolute left-3 top-3 flex flex-col gap-2">
-                  <StatusChip label="You" tone="info" />
-                  <StatusChip label="Assembly" tone="success" />
-                </div>
-              </div>
+              <VenueMap
+                height={420}
+                markers={mapMarkers}
+                routes={mapRoutes}
+              />
               <CardContent className="flex flex-wrap items-center justify-between gap-3 border-t p-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4" /> {recommended.from_zone} → {recommended.to_zone}
@@ -98,10 +100,25 @@ const Evacuation = () => {
 
             {/* Steps */}
             <Card className="shadow-card">
-              <CardHeader><CardTitle className="text-base">Step-by-step</CardTitle></CardHeader>
+              <CardHeader className="flex-row items-center justify-between pb-2">
+                <CardTitle className="text-base">Step-by-step</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setVoice((v) => !v); if (!voice && steps[0]) speakStep(steps[0]); }}
+                  aria-label="Toggle voice guidance"
+                >
+                  {voice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                  <span className="ml-1 text-xs">{voice ? "Voice on" : "Voice off"}</span>
+                </Button>
+              </CardHeader>
               <CardContent className="space-y-3">
                 {steps.map((s, i) => (
-                  <div key={i} className="flex items-start gap-3 rounded-lg border bg-card p-3">
+                  <button
+                    key={i}
+                    onClick={() => speakStep(s)}
+                    className="flex w-full items-start gap-3 rounded-lg border bg-card p-3 text-left transition-base hover:border-primary/40"
+                  >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
                       {i === 0 ? <DoorOpen className="h-4 w-4" /> : i === steps.length - 1 ? <Footprints className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
                     </span>
