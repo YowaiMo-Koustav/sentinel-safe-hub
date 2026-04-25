@@ -11,6 +11,7 @@ export interface SystemStatus {
   power_ok: boolean;
   responders_available: number;
   staff_on_duty: number;
+  last_heartbeat?: string;
   status?: string;
   message?: string;
   updated_at: string;
