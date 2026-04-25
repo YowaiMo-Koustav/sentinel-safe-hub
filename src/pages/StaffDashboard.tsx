@@ -18,6 +18,9 @@ import { EnhancedAIDetectionMonitor } from "@/components/EnhancedAIDetectionMoni
 import { EnhancedMeshNetworkStatus } from "@/components/EnhancedMeshNetworkStatus";
 import { DynamicRoutingPanel } from "@/components/DynamicRoutingPanel";
 import { SensorMonitoringPanel } from "@/components/SensorMonitoringPanel";
+import { VenueMap, type MapMarker } from "@/components/maps/VenueMap";
+import { zoneCoords } from "@/lib/venueGeo";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type Filter = "active" | "new" | "acknowledged" | "in_progress" | "resolved" | "all";
 
@@ -104,16 +107,45 @@ const StaffDashboard = () => {
           ))}
         </div>
 
-        {/* New Sentinel Features */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <EnhancedAIDetectionMonitor />
-          <EnhancedMeshNetworkStatus />
-        </div>
+        {/* Live venue map */}
+        <Card className="overflow-hidden shadow-card">
+          <CardHeader className="flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base">Live venue map</CardTitle>
+            <span className="text-xs text-muted-foreground">{incidents.filter((i) => i.status !== "resolved").length} active incidents</span>
+          </CardHeader>
+          <VenueMap
+            height={360}
+            markers={incidents
+              .filter((i) => i.status !== "resolved")
+              .map<MapMarker>((i) => ({
+                id: i.id,
+                position: zoneCoords(i.zone),
+                tone: i.severity === "critical" ? "emergency" : i.severity === "high" ? "warning" : "info",
+                label: typeMetaLabel(i.type),
+                pulse: i.status === "new" && i.severity === "critical",
+                onClick: () => navigate(`/incidents/${i.id}`),
+              }))}
+          />
+        </Card>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <DynamicRoutingPanel />
-          <SensorMonitoringPanel />
-        </div>
+        {/* Operations telemetry (collapsible) */}
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="telemetry" className="rounded-xl border bg-card shadow-card">
+            <AccordionTrigger className="px-5 py-3 text-sm font-semibold hover:no-underline">
+              Operations telemetry · AI · Mesh · Routing · Sensors
+            </AccordionTrigger>
+            <AccordionContent className="space-y-6 px-5 pb-5">
+              <div className="grid gap-6 lg:grid-cols-2">
+                <EnhancedAIDetectionMonitor />
+                <EnhancedMeshNetworkStatus />
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <DynamicRoutingPanel />
+                <SensorMonitoringPanel />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         <Card className="shadow-card">
           <CardHeader className="flex flex-col gap-3 pb-3">
