@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusChip } from "@/components/StatusChip";
 import { useEvacuationPaths } from "@/hooks/useVenueData";
-import { ArrowDown, DoorOpen, MapPin, ShieldCheck, Loader2, Footprints } from "lucide-react";
+import { ArrowDown, DoorOpen, MapPin, ShieldCheck, Loader2, Footprints, Volume2, VolumeX } from "lucide-react";
+import { VenueMap, type MapMarker, type MapRoute, type MapTone } from "@/components/maps/VenueMap";
+import { ASSEMBLY_POINT, buildRoute, zoneCoords } from "@/lib/venueGeo";
+import { useState } from "react";
 
 const PATH_TONE: Record<string, { tone: "success" | "warning" | "emergency"; label: string }> = {
   clear: { tone: "success", label: "Clear" },
