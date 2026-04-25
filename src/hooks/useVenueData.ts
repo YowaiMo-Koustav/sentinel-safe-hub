@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
 import { apiClient, type Zone, type EvacuationPath } from "@/lib/api";
 
+export type { EvacuationPath, Zone } from "@/lib/api";
+
 export interface SystemStatus {
   id: string;
-  status: string;
+  sensors_online: number;
+  sensors_total: number;
+  network_ok: boolean;
+  power_ok: boolean;
+  responders_available: number;
+  staff_on_duty: number;
+  last_heartbeat?: string;
+  status?: string;
   message?: string;
   updated_at: string;
 }
@@ -176,6 +185,12 @@ export function useSystemStatus() {
         // For now, use a mock system status since we don't have a dedicated endpoint
         const mockStatus: SystemStatus = {
           id: "1",
+          sensors_online: 47,
+          sensors_total: 50,
+          network_ok: true,
+          power_ok: true,
+          responders_available: 6,
+          staff_on_duty: 14,
           status: "operational",
           message: "All systems operational",
           updated_at: new Date().toISOString(),

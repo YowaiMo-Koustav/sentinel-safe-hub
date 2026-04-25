@@ -32,9 +32,8 @@ const Landing = () => {
             <a href="#built" className="text-muted-foreground hover:text-foreground transition-base">Built for</a>
           </nav>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>Sign in</Button>
             <Button size="sm" onClick={() => navigate("/login")}>
-              Try demo <ArrowRight className="h-4 w-4" />
+              Sign in <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -55,11 +54,10 @@ const Landing = () => {
             <div className="flex flex-wrap gap-3 pt-2">
               <Button
                 size="lg"
-                className="bg-emergency text-emergency-foreground hover:bg-emergency/90 shadow-emergency"
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
                 onClick={() => navigate("/login")}
               >
-                <Siren className="h-5 w-5" />
-                Launch live demo
+                Sign in to Sentinel <ArrowRight className="h-5 w-5" />
               </Button>
               <Button
                 size="lg"
@@ -69,6 +67,12 @@ const Landing = () => {
               >
                 <a href="#how">See how it works</a>
               </Button>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-primary-foreground/70">
+              <span>· ISO 27001 ready</span>
+              <span>· GDPR aligned</span>
+              <span>· WCAG 2.1 AA</span>
             </div>
 
             <dl className="mt-10 grid w-full max-w-2xl grid-cols-3 gap-6 border-t border-primary-foreground/15 pt-8">
@@ -147,11 +151,8 @@ const Landing = () => {
                 From the lobby to the back of house, Sentinel unifies guest safety, staff coordination, and responder dispatch into a single, trustworthy system.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button size="lg" className="bg-emergency text-emergency-foreground hover:bg-emergency/90" onClick={() => navigate("/login")}>
-                  Launch demo <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button size="lg" variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10" asChild>
-                  <Link to="/sos">Try guest SOS</Link>
+                <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => navigate("/login")}>
+                  Sign in <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
