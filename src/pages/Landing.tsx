@@ -151,11 +151,8 @@ const Landing = () => {
                 From the lobby to the back of house, Sentinel unifies guest safety, staff coordination, and responder dispatch into a single, trustworthy system.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button size="lg" className="bg-emergency text-emergency-foreground hover:bg-emergency/90" onClick={() => navigate("/login")}>
-                  Launch demo <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button size="lg" variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10" asChild>
-                  <Link to="/sos">Try guest SOS</Link>
+                <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => navigate("/login")}>
+                  Sign in <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
