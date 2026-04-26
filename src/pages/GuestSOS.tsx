@@ -50,28 +50,31 @@ const GuestSOS = () => {
     if (!user || !type) return;
     setStage("submitting");
     const meta = typeMeta(type);
-    
+
     try {
-      const response = await apiClient.createIncident({
-        type: type as any,
-        severity: meta.defaultSeverity as any,
-        zone,
-        room: room || undefined,
-        note: note || undefined,
-        source: 'guest'
-      });
-      
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      
-      if (response.data?.incident) {
-        setCreatedId(response.data.incident.id);
+      const { data, error } = await supabase
+        .from("incidents")
+        .insert({
+          type: type as any,
+          severity: meta.defaultSeverity as any,
+          zone,
+          room: room || null,
+          note: note || null,
+          source: "guest" as any,
+          reporter_id: user.id,
+          reporter_name: displayName || user.email || "Guest",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setCreatedId(data.id);
         setStage("sent");
         toast.success("Help is on the way", { description: "Responders have been notified." });
       }
-    } catch (error) {
-      toast.error("Could not send SOS", { description: error instanceof Error ? error.message : "Failed to submit incident" });
+    } catch (error: any) {
+      toast.error("Could not send SOS", { description: error?.message || "Please try again." });
       setStage("details");
     }
   };
