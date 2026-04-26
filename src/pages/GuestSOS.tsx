@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import { useIncidents } from "@/hooks/useIncidents";
 import { useZones } from "@/hooks/useVenueData";
-import { apiClient } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import {
   INCIDENT_TYPES, ZONES, typeMeta, severityClass, statusClass, statusLabel, relativeTime,
   type IncidentType,
