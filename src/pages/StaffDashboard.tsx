@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/lib/AuthContext";
 import { AlertTriangle, Inbox, CheckCircle2, Activity, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { IncidentCard } from "@/components/incidents/IncidentCard";
 import { FilterChips } from "@/components/incidents/FilterChips";
 import { SystemStatusStrip } from "@/components/SystemStatusStrip";
