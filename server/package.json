@@ -1,0 +1,25 @@
+{
+  "name": "p2p-evacuation-signaling",
+  "version": "1.0.0",
+  "description": "P2P signaling server for evacuation route sharing",
+  "main": "p2p-signaling.js",
+  "scripts": {
+    "start": "node p2p-signaling.js",
+    "dev": "nodemon p2p-signaling.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "p2p",
+    "webrtc",
+    "signaling",
+    "evacuation",
+    "websocket"
+  ],
+  "author": "Sentinel Safe Hub",
+  "license": "MIT"
+}

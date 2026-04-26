@@ -15,6 +15,8 @@ import IncidentDetail from "./pages/IncidentDetail";
 import Evacuation from "./pages/Evacuation";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound.tsx";
+import P2PTest from "./components/test/P2PTest";
+import EvacuationTest from "./components/test/EvacuationTest";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,8 @@ const App = () => (
               {/* All signed-in users */}
               <Route path="/sos" element={<GuestSOS />} />
               <Route path="/evacuation" element={<Evacuation />} />
+              <Route path="/test-evacuation" element={<EvacuationTest />} />
+              <Route path="/test-p2p" element={<P2PTest />} />
 
               {/* Staff + admin */}
               <Route
