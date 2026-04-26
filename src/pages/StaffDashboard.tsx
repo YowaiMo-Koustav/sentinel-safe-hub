@@ -15,13 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { IncidentCard } from "@/components/incidents/IncidentCard";
 import { FilterChips } from "@/components/incidents/FilterChips";
 import { SystemStatusStrip } from "@/components/SystemStatusStrip";
-import { EnhancedAIDetectionMonitor } from "@/components/EnhancedAIDetectionMonitor";
-import { EnhancedMeshNetworkStatus } from "@/components/EnhancedMeshNetworkStatus";
-import { DynamicRoutingPanel } from "@/components/DynamicRoutingPanel";
-import { SensorMonitoringPanel } from "@/components/SensorMonitoringPanel";
+import { OperationsTelemetry } from "@/components/OperationsTelemetry";
 import { VenueMap, type MapMarker } from "@/components/maps/VenueMap";
 import { zoneCoords } from "@/lib/venueGeo";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type Filter = "active" | "new" | "acknowledged" | "in_progress" | "resolved" | "all";
 
@@ -140,24 +136,8 @@ const StaffDashboard = () => {
           />
         </Card>
 
-        {/* Operations telemetry (collapsible) */}
-        <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="telemetry" className="rounded-xl border bg-card shadow-card">
-            <AccordionTrigger className="px-5 py-3 text-sm font-semibold hover:no-underline">
-              Operations telemetry · AI · Mesh · Routing · Sensors
-            </AccordionTrigger>
-            <AccordionContent className="space-y-6 px-5 pb-5">
-              <div className="grid gap-6 lg:grid-cols-2">
-                <EnhancedAIDetectionMonitor />
-                <EnhancedMeshNetworkStatus />
-              </div>
-              <div className="grid gap-6 lg:grid-cols-2">
-                <DynamicRoutingPanel />
-                <SensorMonitoringPanel />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        {/* Operations telemetry */}
+        <OperationsTelemetry />
 
         <Card className="shadow-card">
           <CardHeader className="flex flex-col gap-3 pb-3">
