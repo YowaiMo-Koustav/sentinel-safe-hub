@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { NEXT_STATUS } from "@/lib/incidents";
 import { ArrowRight, CheckCircle2, Loader2, Hand } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { IncidentCard } from "@/components/incidents/IncidentCard";
 import { FilterChips } from "@/components/incidents/FilterChips";
 
