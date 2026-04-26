@@ -19,6 +19,7 @@ import { StatusTimeline } from "@/components/incidents/StatusTimeline";
 import { ZoneChip } from "@/components/incidents/ZoneChip";
 import { VenueMap } from "@/components/maps/VenueMap";
 import { zoneCoords } from "@/lib/venueGeo";
+import { AITriagePanel } from "@/components/AITriagePanel";
 
 type AdvanceStatus = Exclude<IncidentStatus, "new">;
 
@@ -142,6 +143,16 @@ const IncidentDetail = () => {
                 legend={false}
               />
             </Card>
+
+            {canPost && (
+              <AITriagePanel
+                type={incident.type}
+                severity={incident.severity}
+                zone={incident.zone}
+                room={incident.room}
+                note={incident.note}
+              />
+            )}
 
             <Card className="shadow-card">
               <CardHeader className="flex-row items-center justify-between pb-3">
