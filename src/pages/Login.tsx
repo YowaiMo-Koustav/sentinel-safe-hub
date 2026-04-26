@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { useAuth, defaultRouteForRole, type AppRole } from "@/lib/AuthContext";
-import { apiClient } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +32,7 @@ const signUpSchema = signInSchema.extend({
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation() as { state?: { from?: string } };
-  const { user, primaryRole, loading, signIn } = useAuth();
+  const { user, primaryRole, loading, signIn, signUp } = useAuth();
 
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [submitting, setSubmitting] = useState(false);
@@ -66,8 +65,15 @@ const Login = () => {
     try {
       await signIn(parsed.data.email, parsed.data.password);
       toast.success("Welcome back");
-    } catch (error) {
-      toast.error("Wrong email or password");
+    } catch (error: any) {
+      const msg = error?.message || "";
+      if (/invalid login|invalid credentials/i.test(msg)) {
+        toast.error("Wrong email or password");
+      } else if (/email not confirmed/i.test(msg)) {
+        toast.error("Please confirm your email first");
+      } else {
+        toast.error(msg || "Sign in failed");
+      }
     }
     setSubmitting(false);
   };
@@ -83,23 +89,25 @@ const Login = () => {
     }
     setSubmitting(true);
     try {
-      // Real signup using our API
-      const response = await apiClient.register(
-        parsed.data.email, 
-        parsed.data.password, 
-        parsed.data.name, 
-        parsed.data.role
-      );
-      
-      if (response.error) {
-        throw new Error(response.error);
+      await signUp(parsed.data.email, parsed.data.password, parsed.data.name, parsed.data.role);
+      // Auto-confirm is on, so we can sign in immediately
+      try {
+        await signIn(parsed.data.email, parsed.data.password);
+        toast.success("Account created — welcome!");
+      } catch {
+        toast.success("Account created — please sign in");
+        setTab("signin");
+        setSiEmail(parsed.data.email);
       }
-      
-      // After successful registration, sign in
-      await signIn(parsed.data.email, parsed.data.password);
-      toast.success("Account created and logged in");
-    } catch (error) {
-      toast.error("Failed to create account");
+    } catch (error: any) {
+      const msg = error?.message || "";
+      if (/already registered|already exists|user already/i.test(msg)) {
+        toast.error("This email is already registered. Try signing in.");
+      } else if (/password/i.test(msg) && /weak|pwned|breach/i.test(msg)) {
+        toast.error("This password has been found in data breaches. Choose another.");
+      } else {
+        toast.error(msg || "Could not create account");
+      }
     }
     setSubmitting(false);
   };
@@ -107,14 +115,30 @@ const Login = () => {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden bg-gradient-hero p-10 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-        <SentinelLogo />
-        <div className="space-y-4">
-          <h2 className="text-3xl font-bold tracking-tight">A calm system for the worst moments.</h2>
-          <p className="max-w-md text-primary-foreground/80">
+        <SentinelLogo inverted />
+        <div className="space-y-5">
+          <h2 className="text-4xl font-bold tracking-tight leading-[1.1]">
+            A calm system for the worst moments.
+          </h2>
+          <p className="max-w-md text-base text-primary-foreground/85">
             Sentinel coordinates guests, staff, and responders into one fast, reliable response — so your team can focus on people, not phones.
           </p>
+          <div className="grid gap-3 pt-2">
+            {[
+              "Real-time incident dashboard",
+              "Live evacuation routing",
+              "One-tap guest SOS",
+            ].map((f) => (
+              <div key={f} className="flex items-center gap-2.5 text-sm text-primary-foreground/90">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/30 ring-1 ring-accent/50">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                </span>
+                {f}
+              </div>
+            ))}
+          </div>
         </div>
-        <p className="text-xs text-primary-foreground/60">Project Sentinel · Google Solution Challenge 2026</p>
+        <p className="text-xs text-primary-foreground/70">Project Sentinel · Google Solution Challenge 2026</p>
       </div>
 
       <div className="flex items-center justify-center p-6">

@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Siren } from "lucide-react";
 import { StatusChip } from "./StatusChip";
 import { RoleBadge } from "./RoleBadge";
+import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function AppLayout() {
   const navigate = useNavigate();
   const { user, primaryRole } = useAuth();
+  const isGuest = primaryRole === "guest";
 
   return (
     <SidebarProvider>
@@ -26,19 +28,22 @@ export default function AppLayout() {
             </div>
             <div className="flex items-center gap-2">
               {primaryRole && <RoleBadge role={primaryRole} />}
+              <ThemeToggle />
               {!user && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
                   Sign in
                 </Button>
               )}
-              <Button
-                size="sm"
-                className="bg-emergency text-emergency-foreground hover:bg-emergency/90 shadow-emergency"
-                onClick={() => navigate("/sos")}
-              >
-                <Siren className="h-4 w-4" />
-                <span className="hidden sm:inline">Emergency SOS</span>
-              </Button>
+              {isGuest && (
+                <Button
+                  size="sm"
+                  className="bg-emergency text-emergency-foreground hover:bg-emergency/90 shadow-emergency"
+                  onClick={() => navigate("/sos")}
+                >
+                  <Siren className="h-4 w-4" />
+                  <span className="hidden sm:inline">Emergency SOS</span>
+                </Button>
+              )}
             </div>
           </header>
 

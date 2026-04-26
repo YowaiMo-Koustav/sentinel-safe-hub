@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, MapPin, User, Clock, Radio, CheckCircle2, Loader2, Hand, Send } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/AuthContext";
 import { useIncident } from "@/hooks/useIncidents";
 import { useIncidentUpdates } from "@/hooks/useVenueData";
@@ -16,6 +17,9 @@ import {
 } from "@/lib/incidents";
 import { StatusTimeline } from "@/components/incidents/StatusTimeline";
 import { ZoneChip } from "@/components/incidents/ZoneChip";
+import { VenueMap } from "@/components/maps/VenueMap";
+import { zoneCoords } from "@/lib/venueGeo";
+import { AITriagePanel } from "@/components/AITriagePanel";
 
 type AdvanceStatus = Exclude<IncidentStatus, "new">;
 
@@ -24,36 +28,42 @@ const IncidentDetail = () => {
   const navigate = useNavigate();
   const { user, displayName, primaryRole } = useAuth();
   const { incident, loading } = useIncident(id);
-  const updates = useIncidentUpdates(id);
+  const { updates } = useIncidentUpdates(id);
   const [acting, setActing] = useState(false);
   const [note, setNote] = useState("");
   const [posting, setPosting] = useState(false);
 
   const postUpdate = async (message: string, newStatus: IncidentStatus | null) => {
-    if (!incident || !user) return;
-    // Mock API call - replace with actual API implementation
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log("Posting update:", { message, newStatus });
-      return { data: null, error: null };
-    } catch (error) {
-      return { data: null, error: { message: "Failed to post update" } };
-    }
+    if (!incident || !user) return { error: null };
+    const { error } = await supabase.from("incident_updates").insert({
+      incident_id: incident.id,
+      actor_id: user.id,
+      actor_name: displayName || user.email || "Staff",
+      actor_role: (primaryRole as any) ?? null,
+      new_status: newStatus as any,
+      message,
+    });
+    return { error };
   };
 
   const act = async (next: AdvanceStatus) => {
     if (!incident || !user) return;
     setActing(true);
-    
-    // Mock API call - replace with actual API implementation
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      console.log("Updating incident status:", { next, userId: user.id });
-      
+      const patch: any = { status: next };
+      if (next === "in_progress" && !incident.assigned_to) {
+        patch.assigned_to = user.id;
+        patch.assigned_name = displayName || user.email;
+      }
+      if (next === "resolved") patch.resolved_at = new Date().toISOString();
+
+      const { error } = await supabase.from("incidents").update(patch).eq("id", incident.id);
+      if (error) throw error;
+
       await postUpdate(`Status changed to ${statusLabel(next)}`, next);
       toast.success(`Marked ${statusLabel(next).toLowerCase()}`);
-    } catch (error) {
-      toast.error("Could not update", { description: "Failed to update incident" });
+    } catch (error: any) {
+      toast.error("Could not update", { description: error?.message || "Please try again." });
     }
     setActing(false);
   };
@@ -62,7 +72,7 @@ const IncidentDetail = () => {
     const trimmed = note.trim();
     if (!trimmed) return;
     setPosting(true);
-    const { error } = await postUpdate(trimmed, null) ?? {};
+    const { error } = (await postUpdate(trimmed, null)) ?? {};
     setPosting(false);
     if (error) toast.error("Could not post update", { description: error.message });
     else { setNote(""); toast.success("Update posted"); }
@@ -115,6 +125,34 @@ const IncidentDetail = () => {
                 <Field icon={Radio} label="Assigned to" value={incident.assigned_name || "Unassigned"} />
               </CardContent>
             </Card>
+
+            <Card className="overflow-hidden shadow-card">
+              <CardHeader><CardTitle className="text-base">Incident location</CardTitle></CardHeader>
+              <VenueMap
+                height={260}
+                fitBounds={false}
+                zoom={18}
+                center={zoneCoords(incident.zone)}
+                markers={[{
+                  id: incident.id,
+                  position: zoneCoords(incident.zone),
+                  tone: incident.severity === "critical" ? "emergency" : incident.severity === "high" ? "warning" : "info",
+                  label: incident.zone,
+                  pulse: incident.status === "new",
+                }]}
+                legend={false}
+              />
+            </Card>
+
+            {canPost && (
+              <AITriagePanel
+                type={incident.type}
+                severity={incident.severity}
+                zone={incident.zone}
+                room={incident.room}
+                note={incident.note}
+              />
+            )}
 
             <Card className="shadow-card">
               <CardHeader className="flex-row items-center justify-between pb-3">

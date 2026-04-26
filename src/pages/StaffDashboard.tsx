@@ -6,18 +6,18 @@ import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/StatusChip";
 import { useIncidents } from "@/hooks/useIncidents";
 import {
-  statusLabel, NEXT_STATUS, type IncidentRow,
+  statusLabel, NEXT_STATUS, typeLabel, type IncidentRow,
 } from "@/lib/incidents";
 import { useAuth } from "@/lib/AuthContext";
 import { AlertTriangle, Inbox, CheckCircle2, Activity, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { IncidentCard } from "@/components/incidents/IncidentCard";
 import { FilterChips } from "@/components/incidents/FilterChips";
 import { SystemStatusStrip } from "@/components/SystemStatusStrip";
-import { EnhancedAIDetectionMonitor } from "@/components/EnhancedAIDetectionMonitor";
-import { EnhancedMeshNetworkStatus } from "@/components/EnhancedMeshNetworkStatus";
-import { DynamicRoutingPanel } from "@/components/DynamicRoutingPanel";
-import { SensorMonitoringPanel } from "@/components/SensorMonitoringPanel";
+import { OperationsTelemetry } from "@/components/OperationsTelemetry";
+import { VenueMap, type MapMarker } from "@/components/maps/VenueMap";
+import { zoneCoords } from "@/lib/venueGeo";
 
 type Filter = "active" | "new" | "acknowledged" | "in_progress" | "resolved" | "all";
 
@@ -43,16 +43,27 @@ const StaffDashboard = () => {
 
   const advance = async (i: IncidentRow) => {
     const next = NEXT_STATUS[i.status];
-    if (!next) return;
+    if (!next || !user) return;
     setActing(i.id);
-    
-    // Mock API call - replace with actual API implementation
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      console.log("Advancing incident:", { incidentId: i.id, next, userId: user?.id });
+      const patch: any = { status: next };
+      if (next === "in_progress" && !i.assigned_to) {
+        patch.assigned_to = user.id;
+        patch.assigned_name = displayName || user.email;
+      }
+      if (next === "resolved") patch.resolved_at = new Date().toISOString();
+      const { error } = await supabase.from("incidents").update(patch).eq("id", i.id);
+      if (error) throw error;
+      await supabase.from("incident_updates").insert({
+        incident_id: i.id,
+        actor_id: user.id,
+        actor_name: displayName || user.email || "Staff",
+        new_status: next as any,
+        message: `Status changed to ${statusLabel(next)}`,
+      });
       toast.success(`Marked ${statusLabel(next).toLowerCase()}`);
-    } catch (error) {
-      toast.error("Could not update", { description: "Failed to update incident" });
+    } catch (error: any) {
+      toast.error("Could not update", { description: error?.message });
     }
     setActing(null);
   };
@@ -104,16 +115,29 @@ const StaffDashboard = () => {
           ))}
         </div>
 
-        {/* New Sentinel Features */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <EnhancedAIDetectionMonitor />
-          <EnhancedMeshNetworkStatus />
-        </div>
+        {/* Live venue map */}
+        <Card className="overflow-hidden shadow-card">
+          <CardHeader className="flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base">Live venue map</CardTitle>
+            <span className="text-xs text-muted-foreground">{incidents.filter((i) => i.status !== "resolved").length} active incidents</span>
+          </CardHeader>
+          <VenueMap
+            height={360}
+            markers={incidents
+              .filter((i) => i.status !== "resolved")
+              .map<MapMarker>((i) => ({
+                id: i.id,
+                position: zoneCoords(i.zone),
+                tone: i.severity === "critical" ? "emergency" : i.severity === "high" ? "warning" : "info",
+                label: typeLabel(i.type),
+                pulse: i.status === "new" && i.severity === "critical",
+                onClick: () => navigate(`/incidents/${i.id}`),
+              }))}
+          />
+        </Card>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <DynamicRoutingPanel />
-          <SensorMonitoringPanel />
-        </div>
+        {/* Operations telemetry */}
+        <OperationsTelemetry />
 
         <Card className="shadow-card">
           <CardHeader className="flex flex-col gap-3 pb-3">
