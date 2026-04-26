@@ -65,8 +65,15 @@ const Login = () => {
     try {
       await signIn(parsed.data.email, parsed.data.password);
       toast.success("Welcome back");
-    } catch (error) {
-      toast.error("Wrong email or password");
+    } catch (error: any) {
+      const msg = error?.message || "";
+      if (/invalid login|invalid credentials/i.test(msg)) {
+        toast.error("Wrong email or password");
+      } else if (/email not confirmed/i.test(msg)) {
+        toast.error("Please confirm your email first");
+      } else {
+        toast.error(msg || "Sign in failed");
+      }
     }
     setSubmitting(false);
   };
@@ -82,23 +89,25 @@ const Login = () => {
     }
     setSubmitting(true);
     try {
-      // Real signup using our API
-      const response = await apiClient.register(
-        parsed.data.email, 
-        parsed.data.password, 
-        parsed.data.name, 
-        parsed.data.role
-      );
-      
-      if (response.error) {
-        throw new Error(response.error);
+      await signUp(parsed.data.email, parsed.data.password, parsed.data.name, parsed.data.role);
+      // Auto-confirm is on, so we can sign in immediately
+      try {
+        await signIn(parsed.data.email, parsed.data.password);
+        toast.success("Account created — welcome!");
+      } catch {
+        toast.success("Account created — please sign in");
+        setTab("signin");
+        setSiEmail(parsed.data.email);
       }
-      
-      // After successful registration, sign in
-      await signIn(parsed.data.email, parsed.data.password);
-      toast.success("Account created and logged in");
-    } catch (error) {
-      toast.error("Failed to create account");
+    } catch (error: any) {
+      const msg = error?.message || "";
+      if (/already registered|already exists|user already/i.test(msg)) {
+        toast.error("This email is already registered. Try signing in.");
+      } else if (/password/i.test(msg) && /weak|pwned|breach/i.test(msg)) {
+        toast.error("This password has been found in data breaches. Choose another.");
+      } else {
+        toast.error(msg || "Could not create account");
+      }
     }
     setSubmitting(false);
   };
