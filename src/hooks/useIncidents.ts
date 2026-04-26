@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { apiClient, type Incident } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import type { IncidentRow as Incident, IncidentEventRow } from "@/lib/incidents";
+
+export type { IncidentRow as Incident } from "@/lib/incidents";
 
 interface Options {
-  /** if true, only the current user's incidents (guests). If false/undefined, fetch all (staff+). */
   ownOnly?: boolean;
   userId?: string | null;
   status?: string;
@@ -11,97 +13,83 @@ interface Options {
   enabled?: boolean;
 }
 
-export function useIncidents({ 
-  ownOnly, 
-  userId, 
-  status, 
-  severity, 
-  zone, 
-  enabled = true 
+export function useIncidents({
+  ownOnly,
+  userId,
+  status,
+  severity,
+  zone,
+  enabled = true,
 }: Options = {}) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled) { 
-      setLoading(false); 
-      return; 
+    if (!enabled) {
+      setLoading(false);
+      return;
     }
-    
+
+    let cancelled = false;
     const load = async () => {
       try {
         setLoading(true);
-        
-        const params: any = {};
-        if (ownOnly) params.own_only = true;
-        if (status) params.status = status;
-        if (severity) params.severity = severity;
-        if (zone) params.zone = zone;
-        
-        const response = await apiClient.getIncidents(params);
-        
-        if (response.error) {
-          setError(response.error);
+        let q = supabase.from("incidents").select("*").order("created_at", { ascending: false });
+        if (ownOnly && userId) q = q.eq("reporter_id", userId);
+        if (status) q = q.eq("status", status as any);
+        if (severity) q = q.eq("severity", severity as any);
+        if (zone) q = q.eq("zone", zone);
+
+        const { data, error } = await q;
+        if (cancelled) return;
+        if (error) {
+          setError(error.message);
           setIncidents([]);
-        } else if (response.data) {
-          setIncidents(response.data);
+        } else {
+          setIncidents((data ?? []) as Incident[]);
           setError(null);
         }
-      } catch (err) {
-        setError("Failed to load incidents");
-        setIncidents([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    
-    load();
-  }, [ownOnly, userId, status, severity, zone, enabled]);
 
-  // Real-time updates using WebSocket
-  useEffect(() => {
-    // Set up WebSocket connection for real-time updates
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:5000';
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      console.log('Connected to WebSocket for incident updates');
-    };
-    
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'incident_created' || data.type === 'incident_updated') {
-          setIncidents(prev => {
-            const index = prev.findIndex(i => i.id === data.incident.id);
-            if (index >= 0) {
-              const updated = [...prev];
-              updated[index] = data.incident;
-              return updated;
-            } else {
-              return [data.incident, ...prev];
+    load();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel("incidents-feed")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "incidents" },
+        (payload) => {
+          setIncidents((prev) => {
+            if (payload.eventType === "INSERT") {
+              const row = payload.new as Incident;
+              if (ownOnly && userId && row.reporter_id !== userId) return prev;
+              if (prev.find((i) => i.id === row.id)) return prev;
+              return [row, ...prev];
             }
+            if (payload.eventType === "UPDATE") {
+              const row = payload.new as Incident;
+              return prev.map((i) => (i.id === row.id ? row : i));
+            }
+            if (payload.eventType === "DELETE") {
+              const oldRow = payload.old as { id: string };
+              return prev.filter((i) => i.id !== oldRow.id);
+            }
+            return prev;
           });
         }
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
-      }
-    };
-    
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-    
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
-    
+      )
+      .subscribe();
+
     return () => {
-      ws.close();
+      cancelled = true;
+      supabase.removeChannel(channel);
     };
-  }, []);
+  }, [ownOnly, userId, status, severity, zone, enabled]);
 
   return { incidents, loading, error };
 }
@@ -117,57 +105,34 @@ export function useIncident(id: string | undefined) {
       setLoading(false);
       return;
     }
-    
+    let cancelled = false;
     const load = async () => {
-      try {
-        setLoading(true);
-        
-        const response = await apiClient.getIncident(id);
-        
-        if (response.error) {
-          setError(response.error);
-          setIncident(null);
-        } else if (response.data) {
-          setIncident(response.data);
-          setError(null);
-        }
-      } catch (err) {
-        setError("Failed to load incident");
+      setLoading(true);
+      const { data, error } = await supabase.from("incidents").select("*").eq("id", id).maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        setError(error.message);
         setIncident(null);
-      } finally {
-        setLoading(false);
+      } else {
+        setIncident((data as Incident) ?? null);
+        setError(null);
       }
+      setLoading(false);
     };
-    
     load();
-  }, [id]);
 
-  // Real-time updates for specific incident
-  useEffect(() => {
-    if (!id) return;
-    
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:5000';
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if ((data.type === 'incident_created' || data.type === 'incident_updated') && 
-            data.incident.id === id) {
-          setIncident(data.incident);
-        }
-        
-        if (data.type === 'incident_comment_added' && data.incidentId === id) {
-          setIncident(prev => prev ? { ...prev, events: data.events } : null);
-        }
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
-      }
-    };
-    
+    const channel = supabase
+      .channel(`incident-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "incidents", filter: `id=eq.${id}` },
+        (payload) => setIncident(payload.new as Incident)
+      )
+      .subscribe();
+
     return () => {
-      ws.close();
+      cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, [id]);
 

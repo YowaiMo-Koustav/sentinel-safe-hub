@@ -1,16 +1,31 @@
-import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SentinelMark } from "./SentinelMark";
 
-export function SentinelLogo({ className, showText = true }: { className?: string; showText?: boolean }) {
+export function SentinelLogo({
+  className,
+  showText = true,
+  inverted = false,
+}: {
+  className?: string;
+  showText?: boolean;
+  inverted?: boolean;
+}) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-emergency shadow-emergency">
-        <Shield className="h-5 w-5 text-emergency-foreground" strokeWidth={2.5} />
-      </div>
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <SentinelMark className="h-9 w-9 shadow-elegant rounded-xl" />
       {showText && (
         <div className="flex flex-col leading-none">
-          <span className="text-base font-bold tracking-tight">Sentinel</span>
-          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Crisis Response</span>
+          <span className={cn("text-base font-semibold tracking-tight", inverted && "text-primary-foreground")}>
+            Sentinel
+          </span>
+          <span
+            className={cn(
+              "text-[10px] font-medium uppercase tracking-[0.18em]",
+              inverted ? "text-primary-foreground/70" : "text-muted-foreground"
+            )}
+          >
+            Crisis Response
+          </span>
         </div>
       )}
     </div>

@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/lib/AuthContext";
 import { AlertTriangle, Inbox, CheckCircle2, Activity, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { IncidentCard } from "@/components/incidents/IncidentCard";
 import { FilterChips } from "@/components/incidents/FilterChips";
 import { SystemStatusStrip } from "@/components/SystemStatusStrip";
@@ -46,16 +47,27 @@ const StaffDashboard = () => {
 
   const advance = async (i: IncidentRow) => {
     const next = NEXT_STATUS[i.status];
-    if (!next) return;
+    if (!next || !user) return;
     setActing(i.id);
-    
-    // Mock API call - replace with actual API implementation
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      console.log("Advancing incident:", { incidentId: i.id, next, userId: user?.id });
+      const patch: any = { status: next };
+      if (next === "in_progress" && !i.assigned_to) {
+        patch.assigned_to = user.id;
+        patch.assigned_name = displayName || user.email;
+      }
+      if (next === "resolved") patch.resolved_at = new Date().toISOString();
+      const { error } = await supabase.from("incidents").update(patch).eq("id", i.id);
+      if (error) throw error;
+      await supabase.from("incident_updates").insert({
+        incident_id: i.id,
+        actor_id: user.id,
+        actor_name: displayName || user.email || "Staff",
+        new_status: next as any,
+        message: `Status changed to ${statusLabel(next)}`,
+      });
       toast.success(`Marked ${statusLabel(next).toLowerCase()}`);
-    } catch (error) {
-      toast.error("Could not update", { description: "Failed to update incident" });
+    } catch (error: any) {
+      toast.error("Could not update", { description: error?.message });
     }
     setActing(null);
   };

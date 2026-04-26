@@ -1,7 +1,29 @@
 import { useEffect, useState } from "react";
-import { apiClient, type Zone, type EvacuationPath } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
-export type { EvacuationPath, Zone } from "@/lib/api";
+export interface Zone {
+  id: string;
+  name: string;
+  building?: string | null;
+  floor?: string | null;
+  capacity?: number | null;
+  status: string;
+  evacuation_path_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EvacuationPath {
+  id: string;
+  name: string;
+  from_zone: string;
+  to_zone: string;
+  steps: any;
+  status: string;
+  estimated_seconds?: number | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface SystemStatus {
   id: string;
@@ -12,84 +34,55 @@ export interface SystemStatus {
   responders_available: number;
   staff_on_duty: number;
   last_heartbeat?: string;
-  status?: string;
-  message?: string;
   updated_at: string;
 }
 
 export interface IncidentUpdate {
   id: string;
   incident_id: string;
-  actor_id?: string;
-  actor_name?: string;
-  event_type: string;
-  message?: string;
+  actor_id?: string | null;
+  actor_name?: string | null;
+  actor_role?: string | null;
+  new_status?: string | null;
+  message: string;
   created_at: string;
+  event_type?: string;
 }
 
 export function useZones(params?: { status?: string }) {
   const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        
-        const response = await apiClient.getZones(params);
-        
-        if (response.error) {
-          setError(response.error);
-          setZones([]);
-        } else if (response.data) {
-          setZones(response.data);
-          setError(null);
-        }
-      } catch (err) {
-        setError("Failed to load zones");
-        setZones([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    load();
-  }, [params?.status]);
 
-  // Real-time updates for zones
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:5000';
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'zone_created') {
-          setZones(prev => [...prev, data.zone]);
-        } else if (data.type === 'zone_updated') {
-          setZones(prev => {
-            const index = prev.findIndex(z => z.id === data.zone.id);
-            if (index >= 0) {
-              const updated = [...prev];
-              updated[index] = data.zone;
-              return updated;
-            }
-            return prev;
-          });
-        } else if (data.type === 'zone_deleted') {
-          setZones(prev => prev.filter(z => z.id !== data.id));
-        }
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      let q = supabase.from("zones").select("*").order("name");
+      if (params?.status) q = q.eq("status", params.status as any);
+      const { data, error } = await q;
+      if (cancelled) return;
+      if (error) {
+        setError(error.message);
+        setZones([]);
+      } else {
+        setZones((data ?? []) as Zone[]);
+        setError(null);
       }
+      setLoading(false);
     };
-    
+    load();
+
+    const ch = supabase
+      .channel("zones-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "zones" }, () => load())
+      .subscribe();
+
     return () => {
-      ws.close();
+      cancelled = true;
+      supabase.removeChannel(ch);
     };
-  }, []);
+  }, [params?.status]);
 
   return { zones, loading, error };
 }
@@ -98,174 +91,110 @@ export function useEvacuationPaths(params?: { status?: string; from_zone?: strin
   const [paths, setPaths] = useState<EvacuationPath[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dynamicPaths, setDynamicPaths] = useState<EvacuationPath[]>([]);
-  
+
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
-      try {
-        setLoading(true);
-        
-        const response = await apiClient.getEvacuationPaths(params);
-        
-        if (response.error) {
-          setError(response.error);
-          setPaths([]);
-          setDynamicPaths([]);
-        } else if (response.data) {
-          setPaths(response.data);
-          setDynamicPaths(response.data);
-          setError(null);
-        }
-      } catch (err) {
-        setError("Failed to load evacuation paths");
+      setLoading(true);
+      let q = supabase.from("evacuation_paths").select("*").order("name");
+      if (params?.status) q = q.eq("status", params.status as any);
+      if (params?.from_zone) q = q.eq("from_zone", params.from_zone);
+      const { data, error } = await q;
+      if (cancelled) return;
+      if (error) {
+        setError(error.message);
         setPaths([]);
-        setDynamicPaths([]);
-      } finally {
-        setLoading(false);
+      } else {
+        setPaths((data ?? []) as EvacuationPath[]);
+        setError(null);
       }
+      setLoading(false);
     };
-    
     load();
+
+    const ch = supabase
+      .channel("paths-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "evacuation_paths" }, () => load())
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(ch);
+    };
   }, [params?.status, params?.from_zone]);
 
-  // Real-time updates for evacuation paths
-  useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:5000';
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'evacuation_path_created') {
-          setPaths(prev => [...prev, data.path]);
-          setDynamicPaths(prev => [...prev, data.path]);
-        } else if (data.type === 'evacuation_path_updated') {
-          const updatePaths = (prev: EvacuationPath[]) => {
-            const index = prev.findIndex(p => p.id === data.path.id);
-            if (index >= 0) {
-              const updated = [...prev];
-              updated[index] = data.path;
-              return updated;
-            }
-            return prev;
-          };
-          
-          setPaths(updatePaths);
-          setDynamicPaths(updatePaths);
-        } else if (data.type === 'evacuation_path_deleted') {
-          const filterPaths = (prev: EvacuationPath[]) => 
-            prev.filter(p => p.id !== data.id);
-          
-          setPaths(filterPaths);
-          setDynamicPaths(filterPaths);
-        }
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
-      }
-    };
-    
-    return () => {
-      ws.close();
-    };
-  }, []);
-
-  return { paths, loading, error, dynamicPaths };
+  return { paths, loading, error, dynamicPaths: paths };
 }
 
 export function useSystemStatus() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
-      try {
-        setLoading(true);
-        
-        // For now, use a mock system status since we don't have a dedicated endpoint
-        const mockStatus: SystemStatus = {
-          id: "1",
-          sensors_online: 47,
-          sensors_total: 50,
-          network_ok: true,
-          power_ok: true,
-          responders_available: 6,
-          staff_on_duty: 14,
-          status: "operational",
-          message: "All systems operational",
-          updated_at: new Date().toISOString(),
-        };
-        
-        setStatus(mockStatus);
-      } catch (err) {
-        console.error("Failed to load system status:", err);
-      } finally {
-        setLoading(false);
-      }
+      const { data } = await supabase
+        .from("system_status")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setStatus((data as SystemStatus) ?? null);
     };
-    
     load();
+
+    const ch = supabase
+      .channel("system-status-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "system_status" }, () => load())
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(ch);
+    };
   }, []);
-  
+
   return status;
 }
 
 export function useIncidentUpdates(incidentId: string | undefined) {
   const [updates, setUpdates] = useState<IncidentUpdate[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     if (!incidentId) {
       setUpdates([]);
       setLoading(false);
       return;
     }
-    
+    let cancelled = false;
     const load = async () => {
-      try {
-        setLoading(true);
-        
-        const response = await apiClient.getIncident(incidentId);
-        
-        if (response.data?.events) {
-          setUpdates(response.data.events);
-        } else {
-          setUpdates([]);
-        }
-      } catch (err) {
-        console.error("Failed to load incident updates:", err);
-        setUpdates([]);
-      } finally {
+      setLoading(true);
+      const { data } = await supabase
+        .from("incident_updates")
+        .select("*")
+        .eq("incident_id", incidentId)
+        .order("created_at", { ascending: true });
+      if (!cancelled) {
+        setUpdates((data ?? []) as IncidentUpdate[]);
         setLoading(false);
       }
     };
-    
     load();
+
+    const ch = supabase
+      .channel(`incident-updates-${incidentId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "incident_updates", filter: `incident_id=eq.${incidentId}` },
+        (payload) => setUpdates((prev) => [...prev, payload.new as IncidentUpdate])
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(ch);
+    };
   }, [incidentId]);
 
-  // Real-time updates for incident events
-  useEffect(() => {
-    if (!incidentId) return;
-    
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:5000';
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'incident_comment_added' && data.incidentId === incidentId) {
-          setUpdates(data.events);
-        }
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
-      }
-    };
-    
-    return () => {
-      ws.close();
-    };
-  }, [incidentId]);
-  
   return { updates, loading };
 }
