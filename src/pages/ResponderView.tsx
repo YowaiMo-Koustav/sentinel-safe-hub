@@ -40,28 +40,49 @@ const ResponderView = () => {
   const claim = async (id: string) => {
     if (!user) return;
     setActing(id);
-    
-    // Mock API call - replace with actual API implementation
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      console.log("Claiming incident:", { id, userId: user.id });
+      const { error } = await supabase
+        .from("incidents")
+        .update({
+          assigned_to: user.id,
+          assigned_name: displayName || user.email,
+          status: "in_progress" as any,
+        })
+        .eq("id", id);
+      if (error) throw error;
+      await supabase.from("incident_updates").insert({
+        incident_id: id,
+        actor_id: user.id,
+        actor_name: displayName || user.email || "Responder",
+        new_status: "in_progress" as any,
+        message: `Claimed by ${displayName || "responder"}`,
+      });
       toast.success("Incident assigned to you");
-    } catch (error) {
-      toast.error("Could not claim", { description: "Failed to claim incident" });
+    } catch (error: any) {
+      toast.error("Could not claim", { description: error?.message });
     }
     setActing(null);
   };
 
   const resolve = async (id: string) => {
+    if (!user) return;
     setActing(id);
-    
-    // Mock API call - replace with actual API implementation
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      console.log("Resolving incident:", { id });
+      const { error } = await supabase
+        .from("incidents")
+        .update({ status: "resolved" as any, resolved_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+      await supabase.from("incident_updates").insert({
+        incident_id: id,
+        actor_id: user.id,
+        actor_name: displayName || user.email || "Responder",
+        new_status: "resolved" as any,
+        message: "Marked resolved on scene",
+      });
       toast.success("Incident resolved");
-    } catch (error) {
-      toast.error("Could not resolve", { description: "Failed to resolve incident" });
+    } catch (error: any) {
+      toast.error("Could not resolve", { description: error?.message });
     }
     setActing(null);
   };
