@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, MapPin, User, Clock, Radio, CheckCircle2, Loader2, Hand, Send } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/AuthContext";
 import { useIncident } from "@/hooks/useIncidents";
 import { useIncidentUpdates } from "@/hooks/useVenueData";
