@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/lib/AuthContext";
+import { ExpressAuthProvider } from "@/lib/ExpressAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AppLayout from "./components/AppLayout";
 import Landing from "./pages/Landing";
@@ -26,7 +26,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
+        <ExpressAuthProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
@@ -87,7 +87,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
+        </ExpressAuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

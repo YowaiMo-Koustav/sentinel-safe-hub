@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { type ReactNode } from "react";
-import { useAuth, type AppRole } from "@/lib/AuthContext";
+import { useExpressAuth, type AppRole } from "@/lib/ExpressAuthContext";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allow }: ProtectedRouteProps) {
-  const { user, roles, loading } = useAuth();
+  const { user, roles, loading } = useExpressAuth();
   const location = useLocation();
 
   if (loading) {

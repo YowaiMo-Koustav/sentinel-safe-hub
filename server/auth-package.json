@@ -1,0 +1,22 @@
+{
+  "name": "sentinel-auth-server",
+  "version": "1.0.0",
+  "description": "Authentication server for Sentinel Safe Hub",
+  "main": "auth-server.js",
+  "scripts": {
+    "start": "node auth-server.js",
+    "dev": "nodemon auth-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "jsonwebtoken": "^9.0.2",
+    "bcrypt": "^5.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["authentication", "jwt", "express", "sentinel"],
+  "author": "Sentinel Safe Hub",
+  "license": "MIT"
+}

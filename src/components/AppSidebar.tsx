@@ -14,7 +14,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { SentinelLogo } from "./SentinelLogo";
-import { useAuth, ROLE_LABELS, type AppRole } from "@/lib/AuthContext";
+import { useExpressAuth, ROLE_LABELS, type AppRole } from "@/lib/ExpressAuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { RoleBadge } from "./RoleBadge";
@@ -33,7 +33,7 @@ const items: Item[] = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { roles, primaryRole, displayName, signOut } = useAuth();
+  const { roles, primaryRole, displayName, signOut } = useExpressAuth();
   const navigate = useNavigate();
 
   const visible = items.filter((i) =>

@@ -4,18 +4,19 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/StatusChip";
-import { useIncidents } from "@/hooks/useIncidents";
+import { useExpressIncidents } from "@/hooks/useExpressIncidents";
 import {
   statusLabel, NEXT_STATUS, typeLabel, type IncidentRow,
 } from "@/lib/incidents";
-import { useAuth } from "@/lib/AuthContext";
+import { useExpressAuth } from "@/lib/ExpressAuthContext";
 import { AlertTriangle, Inbox, CheckCircle2, Activity, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { IncidentCard } from "@/components/incidents/IncidentCard";
 import { FilterChips } from "@/components/incidents/FilterChips";
 import { SystemStatusStrip } from "@/components/SystemStatusStrip";
 import { OperationsTelemetry } from "@/components/OperationsTelemetry";
+import { EnhancedMeshNetworkStatus } from "@/components/EnhancedMeshNetworkStatus";
+import { EnhancedAIDetectionMonitor } from "@/components/EnhancedAIDetectionMonitor";
 import { VenueMap, type MapMarker } from "@/components/maps/VenueMap";
 import { zoneCoords } from "@/lib/venueGeo";
 
@@ -23,8 +24,8 @@ type Filter = "active" | "new" | "acknowledged" | "in_progress" | "resolved" | "
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
-  const { displayName, user } = useAuth();
-  const { incidents, loading } = useIncidents();
+  const { displayName, user } = useExpressAuth();
+  const { incidents, loading, updateIncident } = useExpressIncidents();
   const [filter, setFilter] = useState<Filter>("active");
   const [acting, setActing] = useState<string | null>(null);
 
@@ -52,15 +53,7 @@ const StaffDashboard = () => {
         patch.assigned_name = displayName || user.email;
       }
       if (next === "resolved") patch.resolved_at = new Date().toISOString();
-      const { error } = await supabase.from("incidents").update(patch).eq("id", i.id);
-      if (error) throw error;
-      await supabase.from("incident_updates").insert({
-        incident_id: i.id,
-        actor_id: user.id,
-        actor_name: displayName || user.email || "Staff",
-        new_status: next as any,
-        message: `Status changed to ${statusLabel(next)}`,
-      });
+      await updateIncident(i.id, patch);
       toast.success(`Marked ${statusLabel(next).toLowerCase()}`);
     } catch (error: any) {
       toast.error("Could not update", { description: error?.message });
@@ -135,6 +128,12 @@ const StaffDashboard = () => {
               }))}
           />
         </Card>
+
+        {/* EMSH Network and AI Detection */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <EnhancedMeshNetworkStatus />
+          <EnhancedAIDetectionMonitor />
+        </div>
 
         {/* Operations telemetry */}
         <OperationsTelemetry />

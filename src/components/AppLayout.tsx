@@ -6,11 +6,11 @@ import { Siren } from "lucide-react";
 import { StatusChip } from "./StatusChip";
 import { RoleBadge } from "./RoleBadge";
 import { ThemeToggle } from "./ThemeToggle";
-import { useAuth } from "@/lib/AuthContext";
+import { useExpressAuth } from "@/lib/ExpressAuthContext";
 
 export default function AppLayout() {
   const navigate = useNavigate();
-  const { user, primaryRole } = useAuth();
+  const { user, primaryRole } = useExpressAuth();
   const isGuest = primaryRole === "guest";
 
   return (

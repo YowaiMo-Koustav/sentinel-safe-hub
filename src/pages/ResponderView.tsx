@@ -4,12 +4,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/StatusChip";
-import { useIncidents } from "@/hooks/useIncidents";
-import { useAuth } from "@/lib/AuthContext";
+import { useExpressIncidents } from "@/hooks/useExpressIncidents";
+import { useExpressAuth } from "@/lib/ExpressAuthContext";
 import { NEXT_STATUS } from "@/lib/incidents";
 import { ArrowRight, CheckCircle2, Loader2, Hand } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { IncidentCard } from "@/components/incidents/IncidentCard";
 import { FilterChips } from "@/components/incidents/FilterChips";
 
@@ -18,8 +17,8 @@ type Scope = "mine" | "queue" | "all";
 
 const ResponderView = () => {
   const navigate = useNavigate();
-  const { user, displayName } = useAuth();
-  const { incidents, loading } = useIncidents();
+  const { user, displayName } = useExpressAuth();
+  const { incidents, loading, updateIncident } = useExpressIncidents();
   const [acting, setActing] = useState<string | null>(null);
   const [scope, setScope] = useState<Scope>("queue");
 
@@ -41,21 +40,15 @@ const ResponderView = () => {
     if (!user) return;
     setActing(id);
     try {
-      const { error } = await supabase
-        .from("incidents")
-        .update({
-          assigned_to: user.id,
-          assigned_name: displayName || user.email,
-          status: "in_progress" as any,
-        })
-        .eq("id", id);
-      if (error) throw error;
-      await supabase.from("incident_updates").insert({
-        incident_id: id,
-        actor_id: user.id,
-        actor_name: displayName || user.email || "Responder",
-        new_status: "in_progress" as any,
-        message: `Claimed by ${displayName || "responder"}`,
+      await updateIncident(id, {
+        assigned_to: user.id,
+        assigned_name: displayName || user.email || "Responder",
+        status: "in_progress",
+      });
+      await updateIncident(id, {
+        assigned_to: user.id,
+        assigned_name: displayName || user.email || "Responder",
+        status: "in_progress",
       });
       toast.success("Incident assigned to you");
     } catch (error: any) {
@@ -68,17 +61,9 @@ const ResponderView = () => {
     if (!user) return;
     setActing(id);
     try {
-      const { error } = await supabase
-        .from("incidents")
-        .update({ status: "resolved" as any, resolved_at: new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
-      await supabase.from("incident_updates").insert({
-        incident_id: id,
-        actor_id: user.id,
-        actor_name: displayName || user.email || "Responder",
-        new_status: "resolved" as any,
-        message: "Marked resolved on scene",
+      await updateIncident(id, { 
+        status: "resolved", 
+        resolved_at: new Date().toISOString() 
       });
       toast.success("Incident resolved");
     } catch (error: any) {

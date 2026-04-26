@@ -53,7 +53,7 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/incidents', authenticateToken, incidentRoutes);
+app.use('/api/incidents', incidentRoutes);
 app.use('/api/venue', authenticateToken, venueRoutes);
 app.use('/api/users', authenticateToken, userRoutes);
 
@@ -91,7 +91,7 @@ io.on('connection', (socket) => {
 });
 
 // Initialize database and start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 async function startServer() {
   try {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
-import { useAuth, defaultRouteForRole, type AppRole } from "@/lib/AuthContext";
+import { useExpressAuth, defaultRouteForRole, type AppRole } from "@/lib/ExpressAuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ const signUpSchema = signInSchema.extend({
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation() as { state?: { from?: string } };
-  const { user, primaryRole, loading, signIn, signUp } = useAuth();
+  const { user, primaryRole, loading, signIn, signUp } = useExpressAuth();
 
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [submitting, setSubmitting] = useState(false);
