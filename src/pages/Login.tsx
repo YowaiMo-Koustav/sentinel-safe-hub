@@ -115,14 +115,30 @@ const Login = () => {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden bg-gradient-hero p-10 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-        <SentinelLogo />
-        <div className="space-y-4">
-          <h2 className="text-3xl font-bold tracking-tight">A calm system for the worst moments.</h2>
-          <p className="max-w-md text-primary-foreground/80">
+        <SentinelLogo inverted />
+        <div className="space-y-5">
+          <h2 className="text-4xl font-bold tracking-tight leading-[1.1]">
+            A calm system for the worst moments.
+          </h2>
+          <p className="max-w-md text-base text-primary-foreground/85">
             Sentinel coordinates guests, staff, and responders into one fast, reliable response — so your team can focus on people, not phones.
           </p>
+          <div className="grid gap-3 pt-2">
+            {[
+              "Real-time incident dashboard",
+              "Live evacuation routing",
+              "One-tap guest SOS",
+            ].map((f) => (
+              <div key={f} className="flex items-center gap-2.5 text-sm text-primary-foreground/90">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/30 ring-1 ring-accent/50">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                </span>
+                {f}
+              </div>
+            ))}
+          </div>
         </div>
-        <p className="text-xs text-primary-foreground/60">Project Sentinel · Google Solution Challenge 2026</p>
+        <p className="text-xs text-primary-foreground/70">Project Sentinel · Google Solution Challenge 2026</p>
       </div>
 
       <div className="flex items-center justify-center p-6">
