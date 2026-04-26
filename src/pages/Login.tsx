@@ -32,7 +32,7 @@ const signUpSchema = signInSchema.extend({
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation() as { state?: { from?: string } };
-  const { user, primaryRole, loading, signIn } = useAuth();
+  const { user, primaryRole, loading, signIn, signUp } = useAuth();
 
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [submitting, setSubmitting] = useState(false);
