@@ -37,7 +37,22 @@ export function ExpressAuthProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (token) {
-      // Validate token by getting profile
+      // Check if it's a demo token
+      if (token.startsWith('demo-token-admin-')) {
+        const demoUser: ExpressUser = {
+          id: 'demo-admin-1',
+          email: 'admin@sentinel.com',
+          displayName: 'Demo Admin',
+          roles: ['admin', 'staff', 'responder', 'guest'],
+          iat: Date.now() / 1000,
+          exp: (Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+        };
+        setUser(demoUser);
+        setLoading(false);
+        return;
+      }
+
+      // Validate real token by getting profile
       fetch(`${API_BASE_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -69,6 +84,23 @@ export function ExpressAuthProvider({ children }: { children: React.ReactNode })
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
+      // Demo login bypass - hardcoded admin credentials
+      if (email === 'admin@sentinel.com' && password === 'admin123') {
+        const demoUser: ExpressUser = {
+          id: 'demo-admin-1',
+          email: 'admin@sentinel.com',
+          displayName: 'Demo Admin',
+          roles: ['admin', 'staff', 'responder', 'guest'],
+          iat: Date.now() / 1000,
+          exp: (Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+        };
+        
+        setUser(demoUser);
+        localStorage.setItem('authToken', 'demo-token-admin-' + Date.now());
+        return;
+      }
+
+      // Fallback to actual API for other credentials
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -117,7 +149,8 @@ export function ExpressAuthProvider({ children }: { children: React.ReactNode })
   const signOut = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      if (token) {
+      if (token && !token.startsWith('demo-token-admin-')) {
+        // Only call logout API for real tokens, not demo tokens
         await fetch(`${API_BASE_URL}/api/auth/logout`, {
           method: 'POST',
           headers: {
